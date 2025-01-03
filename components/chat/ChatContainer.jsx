@@ -1,10 +1,24 @@
 "use client";
 import { useState, useRef } from "react";
 import { BsFillSendFill } from "react-icons/bs";
-import { FaImage } from "react-icons/fa";
+import { FaImage, FaUpload, FaFolderOpen } from "react-icons/fa";
 import { IoDocumentAttach } from "react-icons/io5";
 import Messages from "./Messages";
 import useFetch from "@/ApiHandle/useFetch";
+import { PDFCard } from "@/components/ui/components/pdf-card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/components/dropdown-menu";
 
 export default function ChatContainer() {
   const [messages, setMessages] = useState([]);
@@ -16,6 +30,35 @@ export default function ChatContainer() {
   const pdfInputRef = useRef(null);
   const id = Math.ceil(Math.random() * 100000000);
   const url = `https://api.openai.com/v1/chat/completions`;
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [savedDocuments] = useState([
+    {
+      id: 1,
+      title: "Medical Report Translation",
+      caption: "Translated from English to Bengali",
+      status: "private",
+      fileName: "medical_report_2024.pdf",
+      fileUrl: "example.pdf",
+      user: {
+        id: 1,
+        name: "John Doe",
+        email: "john.doe@example.com"
+      }
+    },
+    {
+      id: 2,
+      title: "Research Paper",
+      caption: "Technical document translation",
+      status: "public",
+      fileName: "research_2024.pdf",
+      fileUrl: "example.pdf",
+      user: {
+        id: 2,
+        name: "Alice Johnson",
+        email: "alice.johnson@example.com"
+      }
+    }
+  ]);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -249,6 +292,20 @@ export default function ChatContainer() {
     }
   }
 
+  const handleUploadFromComputer = () => {
+    pdfInputRef.current.click();
+  };
+
+  const handleUploadFromSaved = () => {
+    setShowDocumentsModal(true);
+  };
+
+  const handleSelectDocument = (doc) => {
+    // Handle the selected document here
+    setSelectedFile(doc);
+    setShowDocumentsModal(false);
+  };
+
   return (
     <div className="flex h-full scrollbar-hidden">
      
@@ -357,13 +414,40 @@ export default function ChatContainer() {
               >
                 <FaImage className="w-5 h-5" />
               </button>
-              <button
-                onClick={handleFileClick}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-                title="Add PDF"
-              >
-                <IoDocumentAttach className="w-5 h-5" />
-              </button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Add PDF"
+                  >
+                    <IoDocumentAttach className="w-5 h-5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  className="bg-slate-800 border border-slate-700 text-white shadow-lg animate-in"
+                  align="start"
+                  sideOffset={8}
+                  alignOffset={-150}
+                >
+                  <DropdownMenuItem 
+                    onClick={handleUploadFromComputer}
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-slate-700 cursor-pointer"
+                  >
+                    <FaUpload className="w-4 h-4 text-gray-400" />
+                    <span>Upload from Computer</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-700" />
+                  <DropdownMenuItem 
+                    onClick={handleUploadFromSaved}
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-slate-700 cursor-pointer"
+                  >
+                    <FaFolderOpen className="w-4 h-4 text-gray-400" />
+                    <span>Upload from Saved Documents</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <button
                 onClick={handleSubmit}
                 className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full text-white hover:opacity-90 transition-opacity"
@@ -375,7 +459,33 @@ export default function ChatContainer() {
         </div>
       </div>
 
-    
+      <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-100 text-[#000]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Select a Document</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {savedDocuments.map((doc) => (
+              <div 
+                key={doc.id} 
+                className="cursor-pointer"
+                onClick={() => handleSelectDocument(doc)}
+              >
+                <PDFCard
+                  title={doc.title}
+                  caption={doc.caption}
+                  status={doc.status}
+                  fileName={doc.fileName}
+                  fileUrl={doc.fileUrl}
+                  user={doc.user}
+                  isSelectable={true}
+                />
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
