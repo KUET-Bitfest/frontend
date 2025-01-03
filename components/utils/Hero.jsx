@@ -14,6 +14,7 @@ import Notification from '../websocket/Notification'
 import SearchSidebar from './SearchSidebar'
 import { RiAiGenerate, RiBrainLine } from 'react-icons/ri'
 import Image from 'next/image'
+import { Tooltip, TooltipProvider } from '../ui/components/tooltip'
 
 const kameron = Kameron({ subsets: ['latin'], weight: '700' })
 
@@ -91,13 +92,16 @@ export default function Hero({ landing = true }) {
 
         {/* Auth Controls - Right */}
         <div className='flex-none flex items-center space-x-4'>
+          <div className="relative group">
           <Button
             variant="icon"
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            title="Search by user's name or pdf title"
             onClick={() => setIsSearchOpen(true)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
           >
             <MdSearch className="w-6 h-6 text-gray-600 dark:text-gray-300" />
           </Button>
+          </div>
           <ThemeChanger />
           {!signedIn ? (
             <>
