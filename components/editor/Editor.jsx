@@ -26,6 +26,9 @@ import OpenAI from "openai"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { z } from "zod"
 import html2pdf from 'html2pdf.js'
+import { Input } from "@/components/ui/components/input"
+import { Button } from "@/components/ui/components/button"
+import { cn } from "@/lib/utils"
 
 const fontFamilies = [
   { name: 'Default', value: 'Inter' },
@@ -58,6 +61,11 @@ const Editor = () => {
   const [errorCheckPosition, setErrorCheckPosition] = useState({ x: 0, y: 0 })
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
   const [errorAnalysis, setErrorAnalysis] = useState(null)
+  const [documentMeta, setDocumentMeta] = useState({
+    title: '',
+    caption: ''
+  })
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleTextSelection = () => {
     if (editor) {
@@ -311,12 +319,114 @@ const Editor = () => {
     }
   }
 
+  const generateMetadata = async () => {
+    if (!editor?.getHTML()) return
+
+    setIsGenerating(true)
+    try {
+      const openai = new OpenAI({
+        apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY,
+        dangerouslyAllowBrowser: true
+      });
+
+      const content = editor.getHTML().replace(/<[^>]*>/g, '')
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a document metadata generator. You must ALWAYS respond in Bengali script (not Banglish). Generate a concise title (around 10 words) and a descriptive caption (20-30 words) for the given content. The content might be in English, Banglish, or Bengali - but your response must always be in Bengali script. Respond in JSON format with 'title' and 'caption' fields."
+          },
+          {
+            role: "user",
+            content: content
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      const metadata = JSON.parse(completion.choices[0].message.content);
+      setDocumentMeta({
+        title: metadata.title,
+        caption: metadata.caption
+      });
+    } catch (error) {
+      console.error('Error generating metadata:', error);
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   if (!editor) {
     return null
   }
 
   return (
     <div className="flex flex-col gap-4 w-full h-full p-4 bg-slate-900 scrollbar-hidden">
+      {/* Document Metadata Section */}
+      <div className="bg-slate-800 rounded-lg overflow-hidden">
+        <div className="p-6 space-y-6">
+          {/* Title Section */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400">
+              Title
+            </label>
+            <Input
+              value={documentMeta.title}
+              onChange={(e) => setDocumentMeta(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="Enter a descriptive title..."
+              className="w-full bg-slate-700/50 border-slate-600/50 text-white text-lg font-medium placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* Caption Section */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400">
+              Caption
+            </label>
+            <Input
+              value={documentMeta.caption}
+              onChange={(e) => setDocumentMeta(prev => ({ ...prev, caption: e.target.value }))}
+              placeholder="Add a brief description..."
+              className="w-full bg-slate-700/50 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* AI Generation Button */}
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={generateMetadata}
+              disabled={!editor?.getHTML() || isGenerating}
+              
+            >
+              <div className="flex items-center gap-2">
+                {isGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="text-white/70">Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-white">Generate Using</span>
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium text-purple-100 bg-purple-500/50 rounded-full group-hover:bg-purple-500/70 transition-colors">
+                      AI
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Hover tooltip */}
+              {!isGenerating && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  Generate title and caption from content
+                </div>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg sticky top-0 z-10">
         {/* Font Family Dropdown */}
