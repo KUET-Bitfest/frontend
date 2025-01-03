@@ -19,6 +19,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import Loading from '@/components/ui/components/loading'
+import { BsWindowSidebar } from 'react-icons/bs'
 
 const MenuBar = ({ editor }) => {
   if (!editor) {
@@ -219,8 +220,19 @@ export default function StoryPage() {
                   >
                     Your browser does not support the video tag.
                   </video>
+                  
+                </div>
+
+                <div className="w-full flex justify-center items-center">
+                  <Button onClick={
+                    ()=>
+                    {
+                      window.location.reload();
+                    }
+                  }>Generate Again</Button>
                 </div>
               </div>
+              
             )}
           </div>
         </>
