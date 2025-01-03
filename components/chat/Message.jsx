@@ -2,12 +2,19 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from "lucide-react"
 import { IoDocumentAttach } from 'react-icons/io5';
+import { FaUser } from 'react-icons/fa';
+import { RiRobot2Fill } from 'react-icons/ri';
 
 export default function Message({ type, message, image, fileName }) {
   const isOwner = type === 'owner';
   
   return (
-    <div className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start gap-2 ${isOwner ? 'justify-end' : 'justify-start'}`}>
+      {!isOwner && (
+        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+          <RiRobot2Fill className="w-5 h-5 text-white" />
+        </div>
+      )}
       <div className={`max-w-[70%] rounded-lg px-4 py-2 ${
         isOwner 
           ? 'bg-purple-600 text-white rounded-br-none' 
@@ -38,6 +45,11 @@ export default function Message({ type, message, image, fileName }) {
           <p className="text-sm whitespace-pre-wrap">{message}</p>
         )}
       </div>
+      {isOwner && (
+        <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+          <FaUser className="w-5 h-5 text-white" />
+        </div>
+      )}
     </div>
   );
 } 

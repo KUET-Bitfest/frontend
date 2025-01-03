@@ -175,7 +175,7 @@ export default function Hero({ landing = true }) {
                     <img
                       src="/profile.png"
                       alt="Profile"
-                      className="w-24 h-24 rounded-full"
+                      className="w-8 h-8 rounded-full"
                     />
                     <AiOutlineMenu className="text-xl text-gray-600 dark:text-gray-300" />
                   </div>

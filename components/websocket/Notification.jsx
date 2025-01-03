@@ -71,7 +71,12 @@ export default function Notification() {
   useEffect(() => {
     if (!isOpen) {
       try {
-        fetch(`${ENDPOINT}/notification/user/1`, {
+        let token = localStorage.getItem("token");
+        if (!token) {
+          return;
+        }
+        token = JSON.parse(token);
+        fetch(`${ENDPOINT}/notification/user/${token.user_id}`, {
           method: "PUT",
           headers : {'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + token.access_token,
@@ -92,12 +97,12 @@ export default function Notification() {
   return (
     <div className="relative">
       <button
-        className="relative p-2 hover:bg-gray-100 rounded-full"
+        className="relative p-2 rounded-full"
         onClick={() => {
           setIsOpen((prev) => !prev);
         }}
       >
-        <FaBell className="text-gray-800" />
+        <FaBell className="text-gray-800 dark:text-gray-300" />
         {unreadCount > 0 && (
           <span className="absolute top-0 h-4 w-4 right-0 inline-flex items-center justify-center px-1 py-1 text-xs font-bold leading-none text-[#a31919] bg-gray-100 p-1 rounded-full">
             {unreadCount}
