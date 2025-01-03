@@ -17,7 +17,7 @@ const kameron = Kameron({ subsets: ['latin'], weight: '700' })
 
 export default function Hero({ landing = true }) {
   const pathname = usePathname()
-  const [signedIn, setSignedIn] = useState(true)
+  const [signedIn, setSignedIn] = useState(false)
   const [token, setToken] = useState(false)
   const [nav, setNav] = useState(false)
   const router = useRouter()

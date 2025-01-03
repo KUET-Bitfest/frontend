@@ -11,10 +11,7 @@ import {
   Italic, 
   List, 
   Heading, 
-  Mic, 
-  MicOff,
-  Volume2,
-  VolumeX,
+  Mic,
   ChevronDown,
   Image as ImageIcon,
   Type,
@@ -50,11 +47,8 @@ const ErrorAnalysis = z.object({
 });
 
 const Editor = () => {
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
   const [showFontFamily, setShowFontFamily] = useState(false)
   const [showFontSize, setShowFontSize] = useState(false)
-  const recognitionRef = useRef(null)
   const imageInputRef = useRef(null)
   const [selectedText, setSelectedText] = useState('')
   const [showErrorCheck, setShowErrorCheck] = useState(false)
@@ -66,6 +60,9 @@ const Editor = () => {
     caption: ''
   })
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isListening, setIsListening] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const handleTextSelection = () => {
     if (editor) {
@@ -118,80 +115,6 @@ const Editor = () => {
       }
     },
   });
-
-  useEffect(() => {
-    // Initialize speech recognition
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.webkitSpeechRecognition
-      const recognition = new SpeechRecognition()
-      
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = 'bn-BD'
-
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('')
-
-        if (event.results[0].isFinal && editor) {
-          editor.commands.insertContent(transcript + ' ')
-        }
-      }
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error)
-        setIsListening(false)
-      }
-
-      recognition.onend = () => {
-        if (isListening) {
-          recognition.start() 
-        }
-      }
-
-      recognitionRef.current = recognition
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-    }
-  }, [isListening, editor])
-
-  const toggleVoiceInput = () => {
-    try {
-      if (isListening) {
-        recognitionRef.current?.stop()
-      } else {
-        recognitionRef.current?.start()
-      }
-      setIsListening(!isListening)
-    } catch (error) {
-      console.error('Error toggling voice input:', error)
-      setIsListening(false)
-    }
-  }
-
-  const speakContent = () => {
-    if ('speechSynthesis' in window) {
-      const speech = new SpeechSynthesisUtterance()
-      speech.text = editor?.getHTML().replace(/<[^>]*>/g, '') || ''
-      speech.lang = 'bn-BD'
-      
-      speech.onstart = () => setIsSpeaking(true)
-      speech.onend = () => setIsSpeaking(false)
-      
-      if (isSpeaking) {
-        window.speechSynthesis.cancel()
-        setIsSpeaking(false)
-      } else {
-        window.speechSynthesis.speak(speech)
-      }
-    }
-  }
 
   const addImage = () => {
     imageInputRef.current?.click()
@@ -283,8 +206,28 @@ const Editor = () => {
     // Create a temporary div to render the content
     const tempDiv = document.createElement('div')
     
-    // Add the editor content to the div
-    tempDiv.innerHTML = editor.getHTML()
+    // Add title and caption if they exist
+    let contentHTML = '';
+    if (documentMeta.title.trim()) {
+      contentHTML += `
+        <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px; text-align: center;">
+          ${documentMeta.title}
+        </h1>
+      `;
+    }
+    if (documentMeta.caption.trim()) {
+      contentHTML += `
+        <p style="font-size: 16px; color: #666; margin-bottom: 24px; text-align: center; font-style: italic;">
+          ${documentMeta.caption}
+        </p>
+      `;
+    }
+    
+    // Add the editor content
+    contentHTML += editor.getHTML();
+    
+    // Set the complete HTML content
+    tempDiv.innerHTML = contentHTML;
     
     // Add some styling to the temp div
     tempDiv.style.padding = '40px'
@@ -293,7 +236,7 @@ const Editor = () => {
     
     const opt = {
       margin: 20,
-      filename: 'document.pdf',
+      filename: documentMeta.title.trim() ? `${documentMeta.title}.pdf` : 'document.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2,
@@ -358,6 +301,140 @@ const Editor = () => {
     }
   }
 
+  const toggleVoiceRecording = async () => {
+    try {
+      if (isListening) {
+        // Stop recording
+        mediaRecorderRef.current?.stop();
+        setIsListening(false);
+      } else {
+        // Start recording
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Try different MIME types in order of preference
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+            ? 'audio/ogg;codecs=opus'
+            : 'audio/webm';
+
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: mimeType
+        });
+        
+        mediaRecorder.onstart = () => {
+          chunksRef.current = [];
+        };
+
+        mediaRecorder.ondataavailable = (e) => {
+          chunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          // Create audio blob
+          const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+          
+          // Convert WebM to WAV
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioContext = new AudioContext();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          
+          // Create WAV file
+          const wavBuffer = audioBufferToWav(audioBuffer);
+          const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+          
+          // Create a File object from the WAV Blob
+          const audioFile = new File([wavBlob], 'recording.wav', {
+            type: 'audio/wav',
+            lastModified: Date.now()
+          });
+
+          console.log('Audio File created:', audioFile);
+          const formData = new FormData();
+          formData.append('file', audioFile);
+          
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/ai/speech-to-bangla`, {
+              method: 'POST',
+              body: formData
+            });
+            const data = await response.json();
+            console.log('Upload successful:', data);
+            
+            if (data.response) {
+              editor?.chain().focus().insertContent(data.response).run();
+            }
+          } catch (error) {
+            console.error('Upload failed:', error);
+          }
+          
+          // Clean up
+          stream.getTracks().forEach(track => track.stop());
+          audioContext.close();
+        };
+
+        mediaRecorderRef.current = mediaRecorder;
+        mediaRecorderRef.current.start();
+        setIsListening(true);
+      }
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+    }
+  };
+
+  // Add this helper function to convert AudioBuffer to WAV format
+  function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2;
+    const buffer2 = new ArrayBuffer(44 + length);
+    const view = new DataView(buffer2);
+    const channels = [];
+    let sample;
+    let offset = 0;
+    let pos = 0;
+
+    // write WAVE header
+    setUint32(0x46464952);                         // "RIFF"
+    setUint32(36 + length);                        // file length - 8
+    setUint32(0x45564157);                         // "WAVE"
+    setUint32(0x20746d66);                         // "fmt " chunk
+    setUint32(16);                                 // length = 16
+    setUint16(1);                                  // PCM (uncompressed)
+    setUint16(numOfChan);
+    setUint32(buffer.sampleRate);
+    setUint32(buffer.sampleRate * 2 * numOfChan);  // avg. bytes/sec
+    setUint16(numOfChan * 2);                      // block-align
+    setUint16(16);                                 // 16-bit
+    setUint32(0x61746164);                         // "data" - chunk
+    setUint32(length);                             // chunk length
+
+    // write interleaved data
+    for(let i = 0; i < buffer.numberOfChannels; i++)
+      channels.push(buffer.getChannelData(i));
+
+    while(pos < buffer.length) {
+      for(let i = 0; i < numOfChan; i++) {
+        sample = Math.max(-1, Math.min(1, channels[i][pos]));
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+        view.setInt16(44 + offset, sample, true); 
+        offset += 2;
+      }
+      pos++;
+    }
+
+    function setUint16(data) {
+      view.setUint16(pos, data, true);
+      pos += 2;
+    }
+
+    function setUint32(data) {
+      view.setUint32(pos, data, true);
+      pos += 4;
+    }
+
+    return buffer2;
+  }
+
   if (!editor) {
     return null
   }
@@ -392,8 +469,6 @@ const Editor = () => {
               className="w-full bg-slate-700/50 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
             />
           </div>
-
-          {/* AI Generation Button */}
           <div className="flex justify-end pt-2">
             <Button
               onClick={generateMetadata}
@@ -546,29 +621,13 @@ const Editor = () => {
           <FileDown className="w-5 h-5" />
         </button>
 
-        {/* Voice Input and Speech buttons */}
+        {/* Voice Input Button */}
         <button
-          onClick={toggleVoiceInput}
+          onClick={toggleVoiceRecording}
           className={`p-2 rounded hover:bg-slate-600 ${isListening ? 'bg-red-600' : 'bg-slate-700'}`}
-          title={isListening ? 'Stop voice input' : 'Start voice input'}
+          title={isListening ? 'Stop recording' : 'Start recording'}
         >
-          {isListening ? (
-            <MicOff className="w-5 h-5 text-white" />
-          ) : (
-            <Mic className="w-5 h-5 text-white" />
-          )}
-        </button>
-
-        <button
-          onClick={speakContent}
-          className={`p-2 rounded hover:bg-slate-600 ${isSpeaking ? 'bg-purple-600' : 'bg-slate-700'}`}
-          title={isSpeaking ? 'Stop speaking' : 'Speak content'}
-        >
-          {isSpeaking ? (
-            <VolumeX className="w-5 h-5 text-white" />
-          ) : (
-            <Volume2 className="w-5 h-5 text-white" />
-          )}
+          <Mic className={`w-5 h-5 ${isListening ? 'text-white animate-pulse' : 'text-white'}`} />
         </button>
       </div>
 
@@ -576,14 +635,6 @@ const Editor = () => {
       <div className="flex-1 bg-slate-800 rounded-lg overflow-auto text-white relative scrollbar-hidden">
         <EditorContent editor={editor} />
       </div>
-
-      {/* Voice Input Status */}
-      {isListening && (
-        <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-full flex items-center gap-2">
-          <Mic className="w-4 h-4 animate-pulse" />
-          <span>Listening...</span>
-        </div>
-      )}
 
       {/* Error Check Tooltip */}
       {showErrorCheck && (
