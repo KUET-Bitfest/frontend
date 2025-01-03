@@ -97,7 +97,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-[#000000] bg-opacity-50">
       <div className="bg-white rounded-lg w-full max-w-md lg:px-10 px-4 md:px-6 py-6 relative">
         <div className="w-full  flex justify-between mb-2">
           <div className=" text-xl font-bold text-black-700 ">
