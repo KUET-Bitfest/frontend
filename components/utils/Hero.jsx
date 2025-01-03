@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
 import { AiOutlineMenu, AiOutlineClose } from 'react-icons/ai'
 import { usePathname, useRouter } from 'next/navigation'
-import { BsFillBellFill } from 'react-icons/bs'
+import { MdTranslate, MdHistory } from 'react-icons/md'
 import { Button } from '../ui/components/button'
 import ThemeChanger from '../utilities/ThemeChanger'
 import TabItem from '../ui/components/tab-item'
@@ -32,8 +32,6 @@ export default function Hero({ landing = true }) {
     if(!token) {
       return
     }
-    // token = JSON.parse(token)
-    
     setToken(token)
   }, [])
 
@@ -53,6 +51,7 @@ export default function Hero({ landing = true }) {
   const handleNav = () => {
       setNav(!nav)
   }
+  
   function signOutHandler() {
     localStorage.removeItem('token');
     router.push('/')
@@ -63,21 +62,23 @@ export default function Hero({ landing = true }) {
     let token = localStorage.getItem("token")
     router.push(url)
   }
+  
   return (
     <>
       <div className='flex justify-between items-center px-8 py-4 text-white w-[90%] mx-auto'>  
         {/* Logo - Left */}
         <div className='flex-none'>
           <Link href={'/'} className={`${kameron.className} text-2xl text-text-primary font-black`}>
-            <h1>TourBuddy</h1>
+            <h1>Bayanno</h1>
           </Link>
         </div>
 
         {/* Navigation - Center */}
         <div className='flex-1 flex justify-center space-x-4'>
           <TabItem to="/" value="Home" className='mx-4' />
-          <TabItem to="/about" value="About" className='mx-4' />
-          <TabItem to="/contact" value="Contact" className='mx-4' />
+          <TabItem to="/translate" value="Translate" className='mx-4' />
+          <TabItem to="/chat" value="Chat" className='mx-4' />
+          <TabItem to="/documents" value="Documents" className='mx-4' />
         </div>
 
         {/* Auth Controls - Right */}
@@ -110,20 +111,16 @@ export default function Hero({ landing = true }) {
                   
                   <div className='py-2'>
                     <DropdownMenuItem className='px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200'>
-                      <Link href={`/dashboard/${token?.id}/review`} className='flex items-center space-x-2 text-gray-700 dark:text-gray-200'>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        <span>Dashboard</span>
+                      <Link href={`/dashboard/${token?.id}`} className='flex items-center space-x-2 text-gray-700 dark:text-gray-200'>
+                        <MdTranslate className="w-5 h-5" />
+                        <span>Translator</span>
                       </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem className='px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200'>
-                      <Link href="/profile" className='flex items-center space-x-2 text-gray-700 dark:text-gray-200'>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span>Profile</span>
+                      <Link href="/history" className='flex items-center space-x-2 text-gray-700 dark:text-gray-200'>
+                        <MdHistory className="w-5 h-5" />
+                        <span>History</span>
                       </Link>
                     </DropdownMenuItem>
 

@@ -1,134 +1,136 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter, useParams } from 'next/navigation'
-import { LuLayoutDashboard } from "react-icons/lu";
-import { CiTimer } from "react-icons/ci";
-import { TbChartHistogram } from "react-icons/tb";
-import { CgCompressLeft } from "react-icons/cg";
-import { Button } from '@/components/ui/components/button'
-import LinkItem from '@/components/ui/components/LinkItem'
-import Hero from '@/components/utils/Hero';
-import Image from 'next/image';
-import { Toaster } from "@/components/ui/components/toaster"
+import { usePathname } from 'next/navigation'
+import { 
+  MdTranslate, 
+  MdHistory, 
+  MdPictureAsPdf,
+  MdChat,
+  MdSettings,
+  MdDashboard,
+  MdVoiceChat,
+  MdHelp,
+  MdMenu,
+  MdChevronLeft
+} from 'react-icons/md'
+import { BiBookContent } from 'react-icons/bi'
+import { cn } from '@/components/utilities/cn'
 
-export default function RootLayout({ children }) {
+export default function DashboardLayout({ children }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const params = useParams()
+  const [collapsed, setCollapsed] = useState(false)
 
-  const navItems = [
+  const menuItems = [
     {
-      title: "Dashboard",
-      to: `/dashboard/${params.id}`,
-      icon: <LuLayoutDashboard />,
+      title: "Overview",
+      icon: <MdDashboard className="w-6 h-6" />,
+      href: "/dashboard",
+      description: "Translation stats and activity"
     },
     {
-      title: "Thor Stake",
-      to: `/dashboard/${params.id}/thor-stake`,
-      icon: <CiTimer />,
+      title: "Quick Translate",
+      icon: <MdTranslate className="w-6 h-6" />,
+      href: "/dashboard/translate",
+      description: "Banglish to Bangla conversion"
     },
     {
-      title: "Pending Liquidity",
-      to: `/dashboard/${params.id}/pending-liquidity`,
-      icon: <CiTimer />,
+      title: "My Documents",
+      icon: <BiBookContent className="w-6 h-6" />,
+      href: "/dashboard/documents",
+      description: "Manage saved translations"
     },
     {
-      title: "Stats",
-      to: `/dashboard/${params.id}/stats`,
-      icon: <TbChartHistogram />,
+      title: "Chat Assistant",
+      icon: <MdChat className="w-6 h-6" />,
+      href: "/dashboard/chat",
+      description: "AI-powered chat help"
     },
     {
-      title: "Collapse Sidebar",
-      to: `/dashboard/${params.id}/collapse`,
-      icon: <CgCompressLeft />,
+      title: "Voice Input",
+      icon: <MdVoiceChat className="w-6 h-6" />,
+      href: "/dashboard/voice",
+      description: "Voice translation"
     },
+    {
+      title: "History",
+      icon: <MdHistory className="w-6 h-6" />,
+      href: "/dashboard/history",
+      description: "Past translations"
+    },
+    {
+      title: "PDF Export",
+      icon: <MdPictureAsPdf className="w-6 h-6" />,
+      href: "/dashboard/pdf",
+      description: "Generate PDF documents"
+    },
+    {
+      title: "Settings",
+      icon: <MdSettings className="w-6 h-6" />,
+      href: "/dashboard/settings",
+      description: "Account preferences"
+    },
+    {
+      title: "Help & Support",
+      icon: <MdHelp className="w-6 h-6" />,
+      href: "/dashboard/help",
+      description: "Get assistance"
+    }
   ]
 
-  const handleSignOut = () => {
-    localStorage.removeItem('token')
-    router.push('/')
-  }
-  const [profile, setProfile] = useState(null)
-  useEffect(() => {
-    async function getProfile() {
-      let token = localStorage.getItem("token")
-      if (!token) {
-        return
-      }
-
-      token = JSON.parse(token)
-      const endpoint = process.env.NEXT_PUBLIC_ENDPOINT
-      const response = await fetch(`${endpoint}/profile`, {
-        method: 'GET',
-        headers : {'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token.accessToken,
-        "ngrok-skip-browser-warning": "69420"
-      }
-    })
-      const ans = await response.json()        
-      setProfile(ans)   
-    }
-    getProfile()
-  }, [])
-
   return (
-    <div className="flex flex-col">
-      <nav className='sticky top-0 z-50 bg-main-bg dark:bg-menu-secondary'>
-        <Hero landing={false} />
-      </nav>
-      
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className="w-72 bg-gray-50 dark:bg-[#1A1B1E] text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 flex flex-col h-[calc(100vh-84px)]">
-          <div className="p-4">
-            <Link href="/" className="flex items-center gap-3">
-              <Image src="/profile.png" alt="Thor" width={100} height={100} className="rounded-full" />
-              <span className="text-xl font-bold">Thor</span>
-            </Link>
-          </div>
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Sidebar */}
+      <div 
+        className={cn(
+          "bg-white dark:bg-gray-800 h-screen transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700",
+          collapsed ? "w-20" : "w-64"
+        )}
+      >
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          {!collapsed && <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Dashboard</h2>}
+          <button 
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {collapsed ? <MdMenu className="w-6 h-6" /> : <MdChevronLeft className="w-6 h-6" />}
+          </button>
+        </div>
 
-          {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-            {navItems.map((item) => (
-              <LinkItem 
-                key={item.to}
-                to={item.to} 
-                title={item.title} 
-                leftIcon={item.icon}
-                variant={
-                  item.alwaysGreen 
-                    ? "primary" 
-                    : item.alwaysBlue 
-                      ? "secondary"
-                      : pathname === item.to 
-                        ? "primary" 
-                        : "default"
-                }
-              />
-            ))}
-          </nav>
-
-          {/* Sign Out Button */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-            <Button 
-              onClick={handleSignOut}
-              variant="dark"
-              size="lg"
-              center
-              className="w-full"
+        {/* Sidebar Menu */}
+        <nav className="p-2 space-y-1">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200",
+                pathname === item.href 
+                  ? "bg-primary text-white" 
+                  : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                collapsed && "justify-center"
+              )}
             >
-              Sign Out
-            </Button>
-          </div>
-        </aside>
+              {item.icon}
+              {!collapsed && (
+                <div>
+                  <div className="font-medium">{item.title}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{item.description}</div>
+                </div>
+              )}
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-        {/* Main Content */}
-        <main className="flex-1 bg-main-bg dark:bg-menu-secondary overflow-auto">
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <main className="p-6">
           {children}
         </main>
       </div>
-      <Toaster />
     </div>
   )
 }
