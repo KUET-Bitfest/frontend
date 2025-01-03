@@ -25,40 +25,14 @@ export default function ChatContainer() {
   const [messageContent, setMessageContent] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isSelectFromSaved, setIsSelectFromSaved] = useState(false);
   const {data : chatHistory, isLoading, isError} = useFetch(`/chat/history`);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const id = Math.ceil(Math.random() * 100000000);
   const url = `https://api.openai.com/v1/chat/completions`;
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  const [savedDocuments] = useState([
-    {
-      id: 1,
-      title: "Medical Report Translation",
-      caption: "Translated from English to Bengali",
-      status: "private",
-      fileName: "medical_report_2024.pdf",
-      fileUrl: "example.pdf",
-      user: {
-        id: 1,
-        name: "John Doe",
-        email: "john.doe@example.com"
-      }
-    },
-    {
-      id: 2,
-      title: "Research Paper",
-      caption: "Technical document translation",
-      status: "public",
-      fileName: "research_2024.pdf",
-      fileUrl: "example.pdf",
-      user: {
-        id: 2,
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com"
-      }
-    }
-  ]);
+  const {data :savedDocuments, loading, error, setData} = useFetch(`/pdf/user/me`)
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -125,7 +99,7 @@ export default function ChatContainer() {
     if (selectedImage) {
       formData.append('file', selectedImage.file);
     }
-    else if (selectedFile) {
+    else if (selectedFile && !isSelectFromSaved ) {
       formData.append('file', selectedFile);
     }
 
@@ -184,25 +158,43 @@ export default function ChatContainer() {
 
       // Handle PDF file differently
       if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-
-        const response = await fetch(
-          `${
-            process.env.NEXT_PUBLIC_ENDPOINT
-          }/ai/file-vision?prompt=${encodeURIComponent(messageContent)}`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("PDF processing failed");
+        if(isSelectFromSaved){
+          const token = JSON.parse(localStorage.getItem("token"));
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_ENDPOINT}/ai/file-vision-suggestion?prompt=${encodeURIComponent(messageContent)}&file_url=${selectedFile.pdf_url}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + token.access_token,
+                "ngrok-skip-browser-warning": "69420"
+              },
+            }
+          );
+          const data = await response.json();
+          answer = data.response || "Failed to process PDF";
         }
-
-        const data = await response.json();
-        answer = data.response || "Failed to process PDF";
+        else
+        {
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+  
+          const response = await fetch(
+            `${
+              process.env.NEXT_PUBLIC_ENDPOINT
+            }/ai/file-vision?prompt=${encodeURIComponent(messageContent)}`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+  
+          if (!response.ok) {
+            throw new Error("PDF processing failed");
+          }
+  
+          const data = await response.json();
+          answer = data.response || "Failed to process PDF";
+      }
       } else {
         // Existing image/text handling code
         let apiMessageContent = [];
@@ -303,6 +295,7 @@ export default function ChatContainer() {
   const handleSelectDocument = (doc) => {
     // Handle the selected document here
     setSelectedFile(doc);
+    setIsSelectFromSaved(true);
     setShowDocumentsModal(false);
   };
 
@@ -369,7 +362,7 @@ export default function ChatContainer() {
                 {selectedFile && (
                   <div className="flex items-center gap-2 bg-slate-700 rounded px-3 py-2">
                     <span className="text-white text-sm">
-                      {selectedFile.name}
+                      {selectedFile.name || selectedFile.title + '.pdf'}
                     </span>
                     <button
                       onClick={removeSelectedFile}
@@ -465,18 +458,19 @@ export default function ChatContainer() {
             <DialogTitle className="text-xl font-bold">Select a Document</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {savedDocuments.map((doc) => (
+            {savedDocuments?.map((doc) => (
               <div 
                 key={doc.id} 
                 className="cursor-pointer"
                 onClick={() => handleSelectDocument(doc)}
               >
                 <PDFCard
+                  key={doc.id}
                   title={doc.title}
                   caption={doc.caption}
-                  status={doc.status}
+                  status={doc.is_public ? 'public' : 'private'}
                   fileName={doc.fileName}
-                  fileUrl={doc.fileUrl}
+                  fileUrl={doc.pdf_url}
                   user={doc.user}
                   isSelectable={true}
                 />
