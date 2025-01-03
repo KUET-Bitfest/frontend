@@ -2,14 +2,34 @@
 import { mockStatisticsData } from '@/mock/statistics-data'
 import BarChartComponent from '@/components/charts/BarChartComponent'
 import LineChartComponent from '@/components/charts/LineChartComponent'
-
+import { useState, useEffect } from 'react'
 export default function StatisticsPage() {
-  const {
-    pdf_stats,
-    chat_stats,
-    translation_stats,
-    training_data_stats,
-  } = mockStatisticsData
+
+  const [pdf_stats, setPdfStats] = useState(mockStatisticsData.pdf_stats)
+  const [chat_stats, setChatStats] = useState(mockStatisticsData.chat_stats)
+  const [translation_stats, setTranslationStats] = useState(mockStatisticsData.translation_stats)
+  const [training_data_stats, setTrainingDataStats] = useState(mockStatisticsData.training_data_stats)
+
+  async function fetchStatistics() {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/user/stats`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${JSON.parse(localStorage.getItem('token')).access_token}`
+      }
+    })
+    const data = await response.json()
+    console.log("data", data)
+    setPdfStats(data.pdf_stats)
+    setChatStats(data.chat_stats)
+    setTranslationStats(data.translation_stats)
+    setTrainingDataStats(data.training_data_stats)
+  }
+
+  useEffect(() => {
+    fetchStatistics()
+
+  }, [])
 
   return (
     <div className="space-y-6 h-full w-full">

@@ -2,32 +2,38 @@
 
 import { useState, useEffect } from 'react'
 import { MdClose, MdSearch } from 'react-icons/md'
-import { mockUsers, mockPDFs } from '@/mock/data'
 import Image from 'next/image'
 
 export default function SearchSidebar({ isOpen, onClose }) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [filteredUsers, setFilteredUsers] = useState([])
-  const [filteredPDFs, setFilteredPDFs] = useState([])
+  const [searchResults, setSearchResults] = useState({ users: [], pdfs: [] })
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (searchQuery) {
-      const users = mockUsers.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      
-      const pdfs = mockPDFs.filter(pdf =>
-        pdf.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pdf.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    const fetchSearchResults = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults({ users: [], pdfs: [] })
+        return
+      }
 
-      setFilteredUsers(users)
-      setFilteredPDFs(pdfs)
-    } else {
-      setFilteredUsers([])
-      setFilteredPDFs([])
+      setIsLoading(true)
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/user/pdf/search?query=${encodeURIComponent(searchQuery)}`)
+        console.log(response.data)
+        if (!response.ok) throw new Error('Search failed')
+        const data = await response.json()
+        setSearchResults(data)
+      } catch (error) {
+        console.error('Search error:', error)
+        // Optionally show error to user
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    // Debounce the search to avoid too many requests
+    const timeoutId = setTimeout(fetchSearchResults, 300)
+    return () => clearTimeout(timeoutId)
   }, [searchQuery])
 
   return (
@@ -63,57 +69,79 @@ export default function SearchSidebar({ isOpen, onClose }) {
 
       {/* Results */}
       <div className="overflow-auto h-[calc(100vh-140px)]">
-        {/* People Section */}
-        {filteredUsers.length > 0 && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3">PEOPLE</h3>
-            <div className="space-y-3">
-              {filteredUsers.map(user => (
-                <div 
-                  key={user.id}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
-                >
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                    <Image
-                      src={"/profile.png"}
-                      alt={user.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div>
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* PDFs Section */}
-        {filteredPDFs.length > 0 && (
-          <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3">PDFs</h3>
-            <div className="space-y-3">
-              {filteredPDFs.map(pdf => (
-                <div 
-                  key={pdf.id}
-                  className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
-                >
-                  <div className="font-medium">{pdf.title}</div>
-                  <div className="text-sm text-gray-500">{pdf.subtitle}</div>
-                  <div className="text-xs text-gray-400 mt-1">{pdf.date}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {searchQuery && filteredUsers.length === 0 && filteredPDFs.length === 0 && (
+        {isLoading ? (
           <div className="p-4 text-center text-gray-500">
-            No results found
+            Loading...
           </div>
+        ) : (
+          <>
+            {/* People Section */}
+            {searchResults.users?.length > 0 && (
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-500 mb-3">PEOPLE</h3>
+                <div className="space-y-3">
+                  {searchResults.users.map(user => (
+                    <div 
+                      key={user.id}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+                    >
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                        <Image
+                          src={"/profile.png"}
+                          alt={user.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                        {user.place && (
+                          <div className="text-xs text-gray-400">{user.place}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* PDFs Section */}
+            {searchResults.pdfs?.length > 0 && (
+              <div className="p-4">
+                <h3 className="text-sm font-semibold text-gray-500 mb-3">PDFs</h3>
+                <div className="space-y-3">
+                  {searchResults.pdfs.map(pdf => (
+                    <div 
+                      key={pdf.id}
+                      className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+                    >
+                      <div className="font-medium">{pdf.title}</div>
+                      <div className="text-sm text-gray-500">{pdf.caption}</div>
+                      <div className="flex justify-between items-center mt-1">
+                        <div className="text-xs text-gray-400">
+                          {new Date(pdf.created_at).toLocaleDateString()}
+                        </div>
+                        {pdf.is_public && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            Public
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {searchQuery && !isLoading && 
+             searchResults.users?.length === 0 && 
+             searchResults.pdfs?.length === 0 && (
+              <div className="p-4 text-center text-gray-500">
+                No results found
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
