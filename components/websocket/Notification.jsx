@@ -18,7 +18,18 @@ export default function Notification() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`${ENDPOINT}/notification/user/1`);
+        let token = localStorage.getItem("token");
+        if (!token) {
+          return;
+        }
+        token = JSON.parse(token);
+        const response = await fetch(`${ENDPOINT}/notification/user/${token.user_id}`, {
+          method: "GET",
+          headers : {'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token.access_token,
+            "ngrok-skip-browser-warning": "69420"
+          }
+        });
         const data = await response.json();
         setNotifications(data);
         setUnreadCount(data.filter((n) => !n.is_read).length);
@@ -62,7 +73,10 @@ export default function Notification() {
       try {
         fetch(`${ENDPOINT}/notification/user/1`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers : {'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token.access_token,
+            "ngrok-skip-browser-warning": "69420"
+          }
         }).then(() => {
           setUnreadCount(0);
           setNotifications((prev) =>
