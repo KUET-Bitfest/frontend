@@ -108,7 +108,7 @@ export default function ChatContainer() {
 
     const newMessage = {
       id,
-      content: messageContent,
+      message: messageContent,
       image: selectedImage?.preview,
       fileName: selectedFile?.name,
       type: "owner",
@@ -164,10 +164,10 @@ export default function ChatContainer() {
         // Existing image/text handling code
         let apiMessageContent = [];
 
-        if (newMessage.content.trim()) {
+        if (newMessage.message.trim()) {
           apiMessageContent.push({
             type: "text",
-            text: newMessage.content,
+            text: newMessage.message,
           });
         }
 
@@ -198,7 +198,7 @@ export default function ChatContainer() {
                 role: msg.owner === "owner" ? "user" : "assistant",
                 content: msg.image
                   ? [
-                      { type: "text", text: msg.content || "" },
+                      { type: "text", text: msg.message || "" },
                       {
                         type: "image_url",
                         image_url: {
@@ -230,7 +230,7 @@ export default function ChatContainer() {
       
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
-          msg.id === aiMessageId ? { ...msg, content: answer } : msg
+          msg.id === aiMessageId ? { ...msg, message: answer } : msg
         )
       );
       
