@@ -1,0 +1,155 @@
+.editor-container {
+  width: 100%;
+  min-height: calc(100vh - 80px);
+  background: #1a1d21;
+  color: #fff;
+}
+
+.toolbar {
+  padding: 0.5rem;
+  background: #1a1d21;
+  border-bottom: 1px solid #2d333b;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #c9d1d9;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 28px;
+  height: 28px;
+}
+
+.toolbar button:hover {
+  background: #2d333b;
+}
+
+.toolbar button[data-active="true"] {
+  background: #2d333b;
+  color: #fff;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #2d333b;
+  margin: 0 0.5rem;
+}
+
+.editor {
+  padding: 1.5rem;
+  min-height: calc(100vh - 125px);
+  max-height: calc(100vh - 125px);
+  overflow-y: auto;
+}
+
+.editor .ProseMirror {
+  outline: none;
+  line-height: 1.6;
+  color: #c9d1d9;
+}
+
+.editor .ProseMirror p {
+  margin-bottom: 1rem;
+}
+
+.floating-threads {
+  z-index: 50;
+}
+
+.floating-composer {
+  z-index: 51;
+  background: #2d333b;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  color: #c9d1d9;
+}
+
+.anchored-threads {
+  position: relative;
+}
+
+.pdf-button-container {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: #1a1d21;
+  border-top: 1px solid #2d333b;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.generate-pdf-button {
+  background: #238636;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.generate-pdf-button:hover {
+  background: #2ea043;
+}
+
+.generate-pdf-button:active {
+  background: #238636;
+}
+
+.loader-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(26, 29, 33, 0.9);
+  padding: 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.loader {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #2d333b;
+  border-bottom-color: #238636;
+  border-radius: 50%;
+  animation: rotation 1s linear infinite;
+}
+
+.loader-container span {
+  color: #c9d1d9;
+  font-size: 0.875rem;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+} 

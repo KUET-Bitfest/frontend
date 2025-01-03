@@ -5,7 +5,6 @@ import TextStyle from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import Image from '@tiptap/extension-image'
-import { client } from '@/liveblocks.config'
 import { useState, useEffect, useRef } from 'react'
 import { 
   Bold, 
@@ -13,11 +12,14 @@ import {
   List, 
   Heading, 
   Mic,
+  MicOff,
   ChevronDown,
   Image as ImageIcon,
   Type,
   FileDown,
-  Eye
+  Eye,
+  Wand2,
+  BookOpen
 } from 'lucide-react'
 import ErrorCheckModal from './ErrorCheckModal'
 import OpenAI from "openai"
@@ -27,14 +29,8 @@ import html2pdf from 'html2pdf.js'
 import { Input } from "@/components/ui/components/input"
 import { Button } from "@/components/ui/components/button"
 import { cn } from "@/lib/utils"
-import { RoomProvider, useLiveblocks } from "@liveblocks/react";
-import { useRoom, useSelf, useOthers } from "@liveblocks/react";
-import { LiveList, LiveObject } from "@liveblocks/client";
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
-import Collaboration from '@tiptap/extension-collaboration'
-import { ClientSideSuspense } from "@liveblocks/react";
-import { LiveblocksProvider } from "@liveblocks/react";
-import { createClient } from "@liveblocks/client";
+import ImageGenerationModal from './ImageGenerationModal'
+import StoryGenerationModal from './StoryGenerationModal'
 
 const fontFamilies = [
   { name: 'Default', value: 'Inter' },
@@ -55,7 +51,7 @@ const ErrorAnalysis = z.object({
   suggestedText: z.string()
 });
 
-const Editor = ({ roomId }) => {
+const Editor = () => {
   const [showFontFamily, setShowFontFamily] = useState(false)
   const [showFontSize, setShowFontSize] = useState(false)
   const imageInputRef = useRef(null)
@@ -72,55 +68,9 @@ const Editor = ({ roomId }) => {
   const [isListening, setIsListening] = useState(false);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
-
-  // Get room after editor is initialized
-  const room = useRoom();
-  const others = useOthers();
-  const currentUser = useSelf();
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        history: false,
-      }),
-      TextStyle,
-      FontFamily,
-      Image.configure({
-        allowBase64: true,
-      }),
-      Collaboration.configure({
-        document: room?.document,
-        field: 'content',
-        user: {
-          name: currentUser?.info?.name || 'Anonymous',
-          color: currentUser?.info?.color || '#000000',
-        },
-      }),
-      CollaborationCursor.configure({
-        provider: room,
-        user: {
-          name: currentUser?.info?.name || 'Anonymous',
-          color: currentUser?.info?.color || '#000000',
-        },
-      }),
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] w-full p-4',
-      },
-      handleDOMEvents: {
-        mouseup: () => {
-          handleTextSelection()
-          return false
-        },
-        keyup: () => {
-          handleTextSelection()
-          return false
-        }
-      }
-    },
-  });
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [showImageGenModal, setShowImageGenModal] = useState(false)
+  const [showStoryModal, setShowStoryModal] = useState(false)
 
   const handleTextSelection = () => {
     if (editor) {
@@ -146,6 +96,33 @@ const Editor = ({ roomId }) => {
       }
     }
   }
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TextStyle,
+      FontFamily,
+      Image.configure({
+        allowBase64: true,
+      }),
+    ],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] w-full p-4',
+      },
+      handleDOMEvents: {
+        mouseup: () => {
+          handleTextSelection()
+          return false
+        },
+        keyup: () => {
+          handleTextSelection()
+          return false
+        }
+      }
+    },
+  });
 
   const addImage = () => {
     imageInputRef.current?.click()
@@ -204,7 +181,7 @@ const Editor = ({ roomId }) => {
       });
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -389,46 +366,51 @@ const Editor = ({ roomId }) => {
         };
 
         mediaRecorder.onstop = async () => {
-          // Create audio blob
-          const audioBlob = new Blob(chunksRef.current, { type: mimeType });
-          
-          // Convert WebM to WAV
-          const arrayBuffer = await audioBlob.arrayBuffer();
-          const audioContext = new AudioContext();
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          
-          // Create WAV file
-          const wavBuffer = audioBufferToWav(audioBuffer);
-          const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-          
-          // Create a File object from the WAV Blob
-          const audioFile = new File([wavBlob], 'recording.wav', {
-            type: 'audio/wav',
-            lastModified: Date.now()
-          });
-
-          console.log('Audio File created:', audioFile);
-          const formData = new FormData();
-          formData.append('file', audioFile);
-          
+          setIsProcessingVoice(true);
           try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/ai/speech-to-bangla`, {
-              method: 'POST',
-              body: formData
-            });
-            const data = await response.json();
-            console.log('Upload successful:', data);
+            // Create audio blob
+            const audioBlob = new Blob(chunksRef.current, { type: mimeType });
             
-            if (data.response) {
-              editor?.chain().focus().insertContent(data.response).run();
+            // Convert WebM to WAV
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioContext = new AudioContext();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            // Create WAV file
+            const wavBuffer = audioBufferToWav(audioBuffer);
+            const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+            
+            // Create a File object from the WAV Blob
+            const audioFile = new File([wavBlob], 'recording.wav', {
+              type: 'audio/wav',
+              lastModified: Date.now()
+            });
+
+            const formData = new FormData();
+            formData.append('file', audioFile);
+            
+            try {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/ai/speech-to-bangla`, {
+                method: 'POST',
+                body: formData
+              });
+              const data = await response.json();
+              
+              if (data.response) {
+                editor?.chain().focus().insertContent(data.response).run();
+              }
+            } catch (error) {
+              console.error('Upload failed:', error);
             }
+            
+            // Clean up
+            stream.getTracks().forEach(track => track.stop());
+            audioContext.close();
           } catch (error) {
-            console.error('Upload failed:', error);
+            console.error('Error processing audio:', error);
+          } finally {
+            setIsProcessingVoice(false);
           }
-          
-          // Clean up
-          stream.getTracks().forEach(track => track.stop());
-          audioContext.close();
         };
 
         mediaRecorderRef.current = mediaRecorder;
@@ -493,27 +475,13 @@ const Editor = ({ roomId }) => {
     return buffer2;
   }
 
-  // Add a presence indicator to show who's currently editing
-  const Presence = () => {
-    const others = useOthers();
-    
-    return (
-      <div className="fixed bottom-4 right-4 flex flex-col gap-2">
-        {others.map(({ connectionId, info }) => (
-          <div 
-            key={connectionId}
-            className="flex items-center gap-2 bg-slate-700 rounded-full px-3 py-1"
-          >
-            <div 
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: info.color }}
-            />
-            <span className="text-sm text-white">{info.name}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const handleGeneratedImage = (imageUrl) => {
+    editor?.chain().focus().setImage({ src: imageUrl }).run()
+  }
+
+  const handleGeneratedStory = (story) => {
+    editor?.chain().focus().insertContent(story).run()
+  }
 
   if (!editor) {
     return null
@@ -526,9 +494,6 @@ const Editor = ({ roomId }) => {
         <div className="p-6 space-y-6">
           {/* Title Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400">
-              Title
-            </label>
             <Input
               value={documentMeta.title}
               onChange={(e) => setDocumentMeta(prev => ({ ...prev, title: e.target.value }))}
@@ -539,13 +504,10 @@ const Editor = ({ roomId }) => {
 
           {/* Caption Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400">
-              Caption
-            </label>
             <Input
               value={documentMeta.caption}
               onChange={(e) => setDocumentMeta(prev => ({ ...prev, caption: e.target.value }))}
-              placeholder="Add a brief description..."
+              placeholder="Add a brief caption..."
               className="w-full bg-slate-700/50 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
             />
           </div>
@@ -674,6 +636,14 @@ const Editor = ({ roomId }) => {
           <ImageIcon className="w-5 h-5 text-white" />
         </button>
 
+        <button
+          onClick={() => setShowImageGenModal(true)}
+          className="p-2 rounded hover:bg-slate-600"
+          title="Generate image with AI"
+        >
+          <Wand2 className="w-5 h-5 text-white" />
+        </button>
+
         <input
           type="file"
           ref={imageInputRef}
@@ -681,6 +651,14 @@ const Editor = ({ roomId }) => {
           accept="image/*"
           className="hidden"
         />
+
+        <button
+          onClick={() => setShowStoryModal(true)}
+          className="p-2 rounded hover:bg-slate-600"
+          title="Generate story with AI"
+        >
+          <BookOpen className="w-5 h-5 text-white" />
+        </button>
 
         <div className="flex-1" />
 
@@ -704,10 +682,31 @@ const Editor = ({ roomId }) => {
         {/* Voice Input Button */}
         <button
           onClick={toggleVoiceRecording}
-          className={`p-2 rounded hover:bg-slate-600 ${isListening ? 'bg-red-600' : 'bg-slate-700'}`}
-          title={isListening ? 'Stop recording' : 'Start recording'}
+          className={cn(
+            "p-2 rounded hover:bg-slate-600 transition-colors relative",
+            isListening ? "bg-red-600" : isProcessingVoice ? "bg-yellow-600" : "bg-slate-700"
+          )}
+          title={
+            isListening 
+              ? 'Stop recording' 
+              : isProcessingVoice 
+                ? 'Processing voice...' 
+                : 'Start recording'
+          }
+          disabled={isProcessingVoice}
         >
-          <Mic className={`w-5 h-5 ${isListening ? 'text-white animate-pulse' : 'text-white'}`} />
+          {isProcessingVoice ? (
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="absolute left-full ml-2 whitespace-nowrap text-sm bg-slate-800 px-2 py-1 rounded">
+                Processing voice...
+              </span>
+            </div>
+          ) : isListening ? (
+            <MicOff className="w-5 h-5 text-white animate-pulse" />
+          ) : (
+            <Mic className="w-5 h-5 text-white" />
+          )}
         </button>
       </div>
 
@@ -762,36 +761,19 @@ const Editor = ({ roomId }) => {
         editor={editor}
       />
 
-      {/* Add Presence indicator */}
-      <Presence />
+      <ImageGenerationModal
+        isOpen={showImageGenModal}
+        onClose={() => setShowImageGenModal(false)}
+        onGenerate={handleGeneratedImage}
+      />
+
+      <StoryGenerationModal
+        isOpen={showStoryModal}
+        onClose={() => setShowStoryModal(false)}
+        onGenerate={handleGeneratedStory}
+      />
     </div>
   )
 }
 
-// Create a wrapper component that provides the Room context
-const EditorWithProviders = ({ roomId }) => {
-    const client = createClient({
-        publicApiKey: "pk_dev_zvxQ7wkHbZ1euy0E2r8GWhYDYvt-iKZXQeja0KRgPAYFg-7KaADcbenlbnCfq4vB",
-        throttle: 100,
-      });
-
-  return (
-    <LiveblocksProvider client={client}>
-      <RoomProvider
-        id={roomId ?? "default-room"} 
-        initialPresence={{
-          cursor: null,
-          name: "Anonymous",
-          color: "#" + Math.floor(Math.random()*16777215).toString(16),
-        }}
-      >
-        <ClientSideSuspense fallback={<div>Loading...</div>}>
-          {() => <Editor roomId={roomId} />}
-        </ClientSideSuspense>
-      </RoomProvider>
-    </LiveblocksProvider>
-  );
-};
-
-// Export the wrapped component instead
-export default EditorWithProviders; 
+export default Editor 
