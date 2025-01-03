@@ -11,7 +11,7 @@ export default function DocumentsPage() {
         <Hero landing={true} />
       </nav>
       <div className="h-[calc(100vh-5rem)] w-full">
-        <Editor roomId={roomId}/>
+        <Editor/>
       </div>
     </main>
   )
