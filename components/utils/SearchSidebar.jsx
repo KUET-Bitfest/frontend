@@ -134,6 +134,11 @@ export default function SearchSidebar({ isOpen, onClose }) {
                     <div 
                       key={pdf.id}
                       className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+                      onClick={() => {
+                        if(pdf.is_public){
+                          router.push(`${process.env.NEXT_PUBLIC_ENDPOINT}/${pdf.pdf_url}`)
+                        }
+                      }}
                     >
                       <div className="font-medium">{pdf.title}</div>
                       <div className="text-sm text-gray-500">{pdf.caption}</div>
