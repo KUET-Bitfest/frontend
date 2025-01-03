@@ -5,7 +5,7 @@ import { IoDocumentAttach } from 'react-icons/io5';
 
 export default function Message({ type, message, image, fileName }) {
   const isOwner = type === 'owner';
-  console.log(message,isOwner ,type);
+  
   return (
     <div className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[70%] rounded-lg px-4 py-2 ${
@@ -24,9 +24,9 @@ export default function Message({ type, message, image, fileName }) {
           </div>
         )}
         {fileName && (
-          <div className="flex items-center gap-2 mb-2 text-sm">
-            <IoDocumentAttach className="w-4 h-4" />
-            <span>{fileName}</span>
+          <div className="flex items-center gap-2 mb-2 p-2 bg-opacity-20 bg-slate-900 rounded-md">
+            <IoDocumentAttach className="w-5 h-5" />
+            <span className="text-sm truncate">{fileName}</span>
           </div>
         )}
         {message === undefined && !isOwner ? (
