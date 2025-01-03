@@ -45,7 +45,7 @@ const ProfileSections = ({ profileDetails }) => {
             className="rounded-full h-24 md:h-60 md:w-60 w-24 "
           />
         ) : (
-          <div className="rounded-full  h-24 md:h-32 md:w-32 w-24 flex items-center justify-center bg-[#7BA1A4] text-white text-3xl font-bold">
+          <div className="rounded-full  h-24 md:h-32 md:w-32 w-24 flex items-center justify-center bg-[#7BA1A4] text-white dark:text-[#000] text-3xl font-bold">
             {profileDetails?.name[0]}
           </div>
         )}
@@ -79,7 +79,7 @@ const ProfileSections = ({ profileDetails }) => {
           />
         </label>
       </div>
-      <div className="text-2xl font-bold">
+      <div className="text-2xl font-bold text-[#000]">
         {profileDetails?.name}
       </div>
       <div className="text-sm text-gray-500">

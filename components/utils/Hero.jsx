@@ -88,6 +88,7 @@ export default function Hero({ landing = true }) {
           <TabItem to="/translate" value="Translate" className='mx-4' />
           <TabItem to="/chat" value="Chat" className='mx-4' />
           <TabItem to="/documents" value="Documents" className='mx-4' />
+          <TabItem to="/audio" value="Generate Story" className='mx-4' />
         </div>
 
         {/* Auth Controls - Right */}

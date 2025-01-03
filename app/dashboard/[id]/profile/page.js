@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 import ChangePasswordModal from "@/app/profile/ChangePasswordModal";
 import ProfileSections from "@/app/profile/ProfileSections";
 import useFetch from "@/ApiHandle/useFetch";
+import { MdEdit, MdClose, MdSave } from 'react-icons/md';
 
 const EditButton = ({ onClick }) => {
   return (
     <button
-      className="px-3 flex items-center rounded-lg bg-primary text-[#fff] text-sm"
+      className="px-4 py-2 flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm transition-colors duration-200"
       onClick={onClick}
     >
+      <MdEdit className="w-4 h-4" />
       Edit
     </button>
   );
@@ -17,7 +19,6 @@ const EditButton = ({ onClick }) => {
 
 export default function ProfilePage() {
   const { data: profileInfo, loading, setData } = useFetch(`/user/me`);
-
   const [basicFormData, setBasicFormData] = useState({
     name: "",
     phone: "",
@@ -70,127 +71,104 @@ export default function ProfilePage() {
   }, [profileInfo]);
 
   return (
-    <div className="grid gap-4 p-4 lg:grid-cols-3 mx-5 md:mx-40 my-10">
-      {profileInfo && (
-        <ProfileSections
-          profileDetails={{
-            name: profileInfo?.name,
-            role: profileInfo?.role,
-            img_url: profileInfo?.img_url,
-          }}
-        />
-      )}
-      <div className="bg-gray-100 lg:p-4 px-2 py-4 rounded-lg lg:col-span-2">
-        <div className="grid grid-cols-1 gap-4 px-4 lg:px-8 py-2">
-          <div className="flex justify-between">
-            <div className="contact-item text-lg font-bold">About</div>
-            {editMode ? (
-              <>
-                <div className="flex">
-                  <button
-                    className="px-3 flex items-center rounded-lg bg-red text-white text-sm"
-                    onClick={() => setEditMode(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="ml-2 px-3 flex items-center rounded-lg bg-primary text-[#fff] text-sm"
-                    onClick={() => handleSaveClick("about")}
-                  >
-                    Save
-                  </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="grid gap-8 lg:grid-cols-3">
+        {profileInfo && (
+          <div className="lg:col-span-1">
+            <ProfileSections
+              profileDetails={{
+                name: profileInfo?.name,
+                role: profileInfo?.role,
+                img_url: profileInfo?.img_url,
+              }}
+            />
+          </div>
+        )}
+        
+        <div className="lg:col-span-2">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Information</h2>
+                {editMode ? (
+                  <div className="flex gap-2">
+                    <button
+                      className="px-4 py-2 flex items-center gap-2 rounded-lg bg-red-500 hover:bg-red-600 text-text-primary dark:text-[#000] text-sm transition-colors duration-200"
+                      onClick={() => setEditMode(false)}
+                    >
+                      <MdClose className="w-4 h-4" />
+                      Cancel
+                    </button>
+                    <button
+                      className="px-4 py-2 flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/90 text-text-primary dark:text-[#000] text-sm transition-colors duration-200"
+                      onClick={() => handleSaveClick("about")}
+                    >
+                      <MdSave className="w-4 h-4" />
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <EditButton onClick={() => setEditMode(!editMode)} />
+                )}
+              </div>
+
+              <div className="space-y-6">
+                {editMode ? (
+                  <>
+                    {Object.entries({
+                      Name: "name",
+                      Phone: "phone",
+                      Place: "place",
+                    }).map(([label, field]) => (
+                      <div key={field} className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</label>
+                        <input
+                          type="text"
+                          value={basicFormData[field]}
+                          onChange={(e) =>
+                            setBasicFormData({ ...basicFormData, [field]: e.target.value })
+                          }
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:text-white transition-colors duration-200"
+                        />
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {Object.entries({
+                      Name: profileInfo?.name,
+                      Email: profileInfo?.email,
+                      Phone: profileInfo?.phone,
+                      Place: profileInfo?.place,
+                    }).map(([label, value]) => (
+                      <div key={label} className="flex flex-col space-y-2">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
+                        <span className="text-base text-gray-900 dark:text-white">{value || '-'}</span>
+                        <div className="pt-2">
+                          <hr className="border-gray-200 dark:border-gray-700" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                <div className="flex flex-col space-y-2 pt-4">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Password</span>
+                  <div>
+                    <button
+                      className="px-4 py-2 bg-primary hover:bg-primary/90 text-text-primary rounded-lg text-sm transition-colors duration-200"
+                      onClick={() => setIsModalOpen(true)}
+                    >
+                      Change Password
+                    </button>
+                  </div>
                 </div>
-              </>
-            ) : (
-              <EditButton onClick={() => setEditMode(!editMode)} />
-            )}
-          </div>
-          {editMode ? (
-            <>
-              <div className="contact-item flex justify-between">
-                <div className="text-black">Name</div>
-                <input
-                  type="text"
-                  name="name"
-                  value={basicFormData.name}
-                  onChange={(e) =>
-                    setBasicFormData({ ...basicFormData, name: e.target.value })
-                  }
-                  className="text-gray-600 border rounded-lg px-3 py-1"
-                />
               </div>
-              <hr />
-              <div className="contact-item flex justify-between">
-                <div className="text-black">Phone</div>
-                <input
-                  type="text"
-                  name="phone"
-                  value={basicFormData.phone}
-                  onChange={(e) =>
-                    setBasicFormData({
-                      ...basicFormData,
-                      phone: e.target.value,
-                    })
-                  }
-                  className="text-gray-600 border rounded-lg px-3 py-1"
-                />
-              </div>
-              <hr />
-              <div className="contact-item flex justify-between">
-                <div className="text-black">Place</div>
-                <input
-                  type="text"
-                  name="place"
-                  value={basicFormData.place}
-                  onChange={(e) =>
-                    setBasicFormData({
-                      ...basicFormData,
-                      place: e.target.value,
-                    })
-                  }
-                  className="text-gray-600 border rounded-lg px-3 py-1"
-                />
-              </div>
-              <hr />
-            </>
-          ) : (
-            <>
-              <div className="contact-item flex justify-between">
-                <div className="text-black">Name</div>
-                <div className="text-gray-600">{profileInfo?.name}</div>
-              </div>
-              <hr />
-              <div className="contact-item flex justify-between">
-                <div className="text-black">Phone</div>
-                <div className="text-gray-600">{profileInfo?.phone}</div>
-              </div>
-              <hr />
-              <div className="contact-item flex justify-between">
-                <div className="text-black">Place</div>
-                <div className="text-gray-600">{profileInfo?.place}</div>
-              </div>
-              <hr />
-            </>
-          )}
-          <div className="contact-item flex justify-between">
-            <div className="text-black">Email</div>
-            <div className="text-gray-600">{profileInfo?.email}</div>
-          </div>
-          <hr />
-          <div className="contact-item flex justify-between">
-            <div className="text-black">Password</div>
-            <div className="flex justify-center">
-              <button
-                className="lg:px-4 px-2 py-1 text-sm bg-primary text-[#fff] rounded-lg"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Change Password
-              </button>
             </div>
           </div>
-          <hr />
         </div>
       </div>
+
       <ChangePasswordModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
