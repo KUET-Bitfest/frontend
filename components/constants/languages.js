@@ -19,6 +19,10 @@ export const translations = {
     generateStory: {
       en: "Generate Story",
       bn: "গল্প তৈরি করুন"
+    },
+    generateColab: {
+      en: "Collaborative Editor",
+      bn: "কলাব এডিটর"
     }
   },
   auth: {

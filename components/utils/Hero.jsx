@@ -122,6 +122,11 @@ export default function Hero({ landing = true }) {
             value={translations.nav.generateStory[currentLanguage]}
             className="mx-4"
           />
+           <TabItem
+            to="/collab"
+            value={translations.nav.generateColab[currentLanguage]}
+            className="mx-4"
+          />
         </div>
 
         {/* Auth Controls - Right */}
