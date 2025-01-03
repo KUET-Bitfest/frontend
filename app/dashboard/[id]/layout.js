@@ -12,34 +12,35 @@ import {
 import { BiBookContent } from 'react-icons/bi'
 import { cn } from '@/components/utilities/cn'
 import Hero from '@/components/utils/Hero'
+import { useParams } from 'next/navigation';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
-
+  const { id } = useParams();
   const menuItems = [
     {
       title: "Statistics",
       icon: <MdAnalytics className="w-6 h-6" />,
-      href: "/dashboard/1/statistics",
+      href: `/dashboard/${id}/statistics`,
       description: "View your translation stats"
     },
     {
       title: "Documents",
       icon: <BiBookContent className="w-6 h-6" />,
-      href: "/dashboard/1/documents",
+      href: `/dashboard/${id}/documents`,
       description: "Manage your documents"
     },
     {
       title: "Train Data",
       icon: <MdDashboard className="w-6 h-6" />,
-      href: "/dashboard/1/train",
+      href: `/dashboard/${id}/train`,
       description: "Train translation models"
     },
     {
       title: "Profile",
       icon: <MdDashboard className="w-6 h-6" />,
-      href: "/dashboard/1/profile",
+      href: `/dashboard/${id}/profile`,
       description: "Manage your profile"
     }
   ]
