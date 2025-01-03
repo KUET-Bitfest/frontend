@@ -202,7 +202,7 @@ const Editor = () => {
     }
   }
 
-  const generatePDF = (preview = false) => {
+  const generatePDF = async (preview = false) => {
     // Create a temporary div to render the content
     const tempDiv = document.createElement('div')
     
@@ -259,6 +259,33 @@ const Editor = () => {
     } else {
       // For download
       html2pdf().set(opt).from(tempDiv).save()
+      // For sending to backend
+      console.log("Sending to backend")
+      const formData = new FormData()
+      const pdfBlob = await html2pdf().set(opt).from(tempDiv).outputPdf('blob').then((pdf) => {
+        return new Blob([pdf], { type: 'application/pdf' })
+      })
+      formData.append('file', pdfBlob)
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/pdf/create?title=${documentMeta.title}&caption=${documentMeta.caption}`, {
+          method: 'POST',
+          headers: {
+            Authorization: "Bearer " + JSON.parse(localStorage.getItem("token")).access_token,
+            "ngrok-skip-browser-warning": "69420"
+          },
+          body: formData
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to upload PDF')
+        }
+
+        const data = await response.json()
+        console.log('PDF uploaded successfully:', data)
+      } catch (error) {
+        console.error('Error uploading PDF:', error)
+      }
     }
   }
 

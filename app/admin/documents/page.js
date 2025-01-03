@@ -2,67 +2,39 @@
 
 import { useState } from 'react'
 import { PDFCard } from "@/components/ui/components/pdf-card"
+import useFetch from '@/ApiHandle/useFetch'
 
 export default function AdminDocumentsPage() {
   const [selectedFilter, setSelectedFilter] = useState('all')
-  const [documents, setDocuments] = useState([
-    {
-      id: 1,
-      title: "Medical Report Translation",
-      caption: "Translated from English to Bengali",
-      status: "private",
-      fileName: "medical_report_2024.pdf",
-      fileUrl: "example.pdf",
-      user: {
-        id: 1,
-        name: "John Doe",
-        email: "john.doe@example.com"
-      }
-    },
-    {
-      id: 2,
-      title: "Academic Certificate",
-      caption: "Official document translation",
-      status: "public",
-      fileName: "certificate_2024.pdf",
-      fileUrl: "example.pdf",
-      user: {
-        id: 2,
-        name: "Jane Smith",
-        email: "jane.smith@example.com"
-      }
-    },
-    {
-      id: 3,
-      title: "Legal Document",
-      caption: "Contract translation with certification",
-      status: "private",
-      fileName: "legal_doc_2024.pdf",
-      fileUrl: "example.pdf",
-      user: {
-        id: 3,
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com"
-      }
-    },
-    {
-      id: 4,
-      title: "Research Paper",
-      caption: "Technical document translation",
-      status: "public",
-      fileName: "research_2024.pdf",
-      fileUrl: "example.pdf",
-      user: {
-        id: 4,
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com"
-      }
-    }
-  ])
+  const {data: documents, loading, error, setData} = useFetch(`/pdf/all`)
 
-  const filteredDocuments = selectedFilter === 'all' 
-    ? documents 
-    : documents.filter(doc => doc.status === selectedFilter)
+  const handleStatusChange = async (docId, newStatus) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/pdf/${docId}/switch`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('token')).access_token}`
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update status')
+      }
+
+      setData(prevDocs =>
+        prevDocs.map(doc =>
+          doc.id === docId ? { ...doc, is_public: newStatus === 'public' } : doc
+        )
+      )
+    } catch (error) {
+      console.error('Error updating document status:', error)
+    }
+  }
+
+  const filteredDocuments = selectedFilter === 'all'
+    ? documents
+    : documents?.filter(doc => doc.is_public === selectedFilter)
 
   return (
     <div className="space-y-6">
@@ -87,8 +59,8 @@ export default function AdminDocumentsPage() {
               id="public"
               name="filter"
               value="public"
-              checked={selectedFilter === 'public'}
-              onChange={(e) => setSelectedFilter(e.target.value)}
+              checked={selectedFilter === true}
+              onChange={(e) => setSelectedFilter(true)}
               className="text-green-600 focus:ring-green-500"
             />
             <label htmlFor="public" className="text-sm text-gray-700 dark:text-gray-200">Public</label>
@@ -99,8 +71,8 @@ export default function AdminDocumentsPage() {
               id="private"
               name="filter"
               value="private"
-              checked={selectedFilter === 'private'}
-              onChange={(e) => setSelectedFilter(e.target.value)}
+              checked={selectedFilter === false}
+              onChange={(e) => setSelectedFilter(false)}
               className="text-yellow-600 focus:ring-yellow-500"
             />
             <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-200">Private</label>
@@ -109,14 +81,15 @@ export default function AdminDocumentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDocuments.map((doc) => (
+        {filteredDocuments?.map((doc) => (
           <PDFCard
             key={doc.id}
             title={doc.title}
             caption={doc.caption}
-            status={doc.status}
+            status={doc.is_public ? 'public' : 'private'}
             fileName={doc.fileName}
-            fileUrl={doc.fileUrl}
+            fileUrl={doc.pdf_url}
+            onStatusChange={(newStatus) => handleStatusChange(doc.id, newStatus)}
             isAdmin={true}
             user={doc.user}
           />
@@ -124,4 +97,4 @@ export default function AdminDocumentsPage() {
       </div>
     </div>
   )
-} 
+}

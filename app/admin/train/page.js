@@ -21,34 +21,13 @@ import { formatTimestamp } from "@/components/utilities/time"
 import { Dot } from '@/components/ui/components/status'
 import { Badge } from '@/components/ui/components/badge'
 import { Textarea } from "@/components/ui/components/textarea"
+import useFetch from '@/ApiHandle/useFetch'
 
 export default function AdminTrainPage() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedItem, setSelectedItem] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [trainDataState, setTrainDataState] = useState([
-    {
-      id: 1,
-      banglishPrompt: "Amar sonar bangla ami tomake valobashi. Chirodin tomar akash tomar batash amar prane bajay bashi. O ma, fagune tor amer bone ghrane pagol kore, mori hay hay re. O ma, oghrane tor bhora khete ami ki dekhechhi modhur hashi.",
-      bengaliAnswer: "আমার সোনার বাংলা আমি তোমাকে ভালোবাসি। চিরদিন তোমার আকাশ তোমার বাতাস আমার প্রাণে বাজায় বাঁশি। ও মা, ফাগুনে তোর আমের বনে ঘ্রাণে পাগল করে, মরি হায় হায় রে। ও মা, অঘ্রাণে তোর ভরা ক্ষেতে আমি কি দেখেছি মধুর হাসি।",
-      timestamp: "2024-01-20T14:30:00",
-      status: "pending"
-    },
-    {
-      id: 2,
-      banglishPrompt: "Ami tomake valobashi",
-      bengaliAnswer: "আমি তোমাকে ভালোবাসি",
-      timestamp: "2024-01-20T15:45:00",
-      status: "pending"
-    },
-    {
-      id: 3,
-      banglishPrompt: "Kemon acho",
-      bengaliAnswer: "কেমন আছো",
-      timestamp: "2024-01-20T16:20:00",
-      status: "pending"
-    },
-  ])
+  const {data: trainData, isLoading, isError, refetch} = useFetch(`/training-data/all`)
 
   const truncateText = (text, maxLength = 50) => {
     if (text.length > maxLength) {
@@ -59,41 +38,83 @@ export default function AdminTrainPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'approved':
+      case 1:
         return 'success'
-      case 'pending':
+      case -1:
         return 'warning'
-      case 'rejected':
+      case 0:
         return 'danger'
       default:
         return ''
     }
   }
 
+  const getStatusText = (status) => {
+    switch (status) {
+      case 1:
+        return 'Approved'
+      case -1:
+        return 'Pending'  
+      case 0:
+        return 'Rejected'
+      default:
+        return ''
+    }
+  }
+
   const filteredData = selectedStatus === 'all' 
-    ? trainDataState 
-    : trainDataState.filter(item => item.status === selectedStatus)
+    ? trainData 
+    : trainData?.filter(item => item.is_approved === selectedStatus)
 
-  const handleStatusChange = (itemId, newStatus) => {
-    // Update the status in the state
-    setTrainDataState(prevData => 
-      prevData.map(item => 
-        item.id === itemId 
-          ? { ...item, status: newStatus }
-          : item
-      )
-    )
+  const handleStatusChange = async (itemId, newStatus) => {
+    try {
+      const token = JSON.parse(localStorage.getItem("token"))
+      const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/training-data/${itemId}/approve-switch?is_approved=${newStatus}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token.access_token,
+          "ngrok-skip-browser-warning": "69420"
+        }
+      })
 
-    // Update the selected item's status
-    setSelectedItem(prev => prev ? { ...prev, status: newStatus } : null)
+      if (!response.ok) {
+        throw new Error('Failed to update status')
+      }
 
-    // Here you would typically make an API call to update the status
-    console.log(`Updating item ${itemId} to status: ${newStatus}`)
-    
-    // Close the modal after a short delay
-    setTimeout(() => {
+      refetch()
       setIsModalOpen(false)
-    }, 500)
+      // Send notification to user
+      const notifyUser = async (userId, status) => {
+        const message = status === 1 
+          ? "Your training data has been approved"
+          : "Your training data has been rejected";
+          
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/notification/user/${userId}?message=${encodeURIComponent(message)}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token.access_token,
+              "ngrok-skip-browser-warning": "69420"
+            }
+          });
+        } catch (error) {
+          console.error('Error sending notification:', error);
+        }
+      }
+
+      // Send notification if status is approved or rejected
+      if (newStatus === 1 || newStatus === 0) {
+        console.log("Sending notification to user")
+        const item = trainData.find(i => i.id === itemId);
+        if (item?.user_id) {
+          await notifyUser(item.user_id, newStatus);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+    }
   }
 
   return (
@@ -120,8 +141,8 @@ export default function AdminTrainPage() {
                 id="approved"
                 name="status"
                 value="approved"
-                checked={selectedStatus === 'approved'}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                checked={selectedStatus === 1}
+                onChange={(e) => setSelectedStatus(1)}
                 className="text-green-600 focus:ring-green-500"
               />
               <label htmlFor="approved" className="text-sm text-gray-700 dark:text-gray-200">Approved</label>
@@ -132,8 +153,8 @@ export default function AdminTrainPage() {
                 id="pending"
                 name="status"
                 value="pending"
-                checked={selectedStatus === 'pending'}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                checked={selectedStatus === -1}
+                onChange={(e) => setSelectedStatus(-1)}
                 className="text-yellow-600 focus:ring-yellow-500"
               />
               <label htmlFor="pending" className="text-sm text-gray-700 dark:text-gray-200">Pending</label>
@@ -144,8 +165,8 @@ export default function AdminTrainPage() {
                 id="rejected"
                 name="status"
                 value="rejected"
-                checked={selectedStatus === 'rejected'}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                checked={selectedStatus === 0}
+                onChange={(e) => setSelectedStatus(0)}
                 className="text-red-600 focus:ring-red-500"
               />
               <label htmlFor="rejected" className="text-sm text-gray-700 dark:text-gray-200">Rejected</label>
@@ -165,7 +186,7 @@ export default function AdminTrainPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredData.map((item) => (
+            {filteredData?.map((item) => (
               <TableRow 
                 key={item.id}
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -175,16 +196,16 @@ export default function AdminTrainPage() {
                 }}
               >
                 <TableCell className="font-medium max-w-[400px] truncate">
-                  {truncateText(item.banglishPrompt)}
+                  {truncateText(item.banglish_text)}
                 </TableCell>
                 <TableCell className="max-w-[400px] truncate">
-                  {truncateText(item.bengaliAnswer)}
+                  {truncateText(item.bangla_text)}
                 </TableCell>
-                <TableCell className="w-[200px]">{formatTimestamp(item.timestamp)}</TableCell>
+                <TableCell className="w-[200px]">{formatTimestamp(item.created_at)}</TableCell>
                 <TableCell className="w-[150px]">
                   <span className="flex items-center space-x-2">
-                    <Dot variant={getStatusColor(item.status)} />
-                    <Badge variant={getStatusColor(item.status)}>{item.status}</Badge>
+                    <Dot variant={getStatusColor(item.is_approved)} />
+                    <Badge variant={getStatusColor(item.is_approved)}>{getStatusText(item.is_approved)}</Badge>
                   </span>
                 </TableCell>
               </TableRow>
@@ -204,7 +225,7 @@ export default function AdminTrainPage() {
                 Banglish Prompt
               </h3>
               <p className="text-lg text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                {selectedItem?.banglishPrompt}
+                {selectedItem?.banglish_text}
               </p>
             </div>
             <div>
@@ -212,25 +233,25 @@ export default function AdminTrainPage() {
                 Bengali Answer
               </h3>
               <p className="text-lg text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                {selectedItem?.bengaliAnswer}
+                {selectedItem?.bangla_text}
               </p>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {formatTimestamp(selectedItem?.timestamp)}
+                {formatTimestamp(selectedItem?.created_at)}
               </span>
               <div className="flex space-x-4">
                 <Button
-                  onClick={() => handleStatusChange(selectedItem?.id, 'approved')}
+                  onClick={() => handleStatusChange(selectedItem?.id, 1)}
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={selectedItem?.status === 'approved'}
+                  disabled={selectedItem?.is_approved === 1}
                 >
                   Approve
                 </Button>
                 <Button
-                  onClick={() => handleStatusChange(selectedItem?.id, 'rejected')}
+                  onClick={() => handleStatusChange(selectedItem?.id, 0)}
                   variant="danger"
-                  disabled={selectedItem?.status === 'rejected'}
+                  disabled={selectedItem?.is_approved === 0}
                 >
                   Reject
                 </Button>
@@ -241,4 +262,4 @@ export default function AdminTrainPage() {
       </Dialog>
     </div>
   )
-} 
+}

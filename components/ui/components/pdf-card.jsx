@@ -20,25 +20,23 @@ export function PDFCard({ title, caption, status, fileName, fileUrl, onStatusCha
             {status === 'public' ? 'Public' : 'Private'}
           </span>
           {!isAdmin && onStatusChange && (
-            <button
-              onClick={() => onStatusChange(status === 'public' ? 'private' : 'public')}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              Toggle Status
-            </button>
+            <Switch
+            checked={status === 'public'}
+            onCheckedChange={(checked) => onStatusChange(checked ? 'public' : 'private')}
+          />
           )}
         </div>
       </div>
       
       <div className="flex items-center justify-between">
         <a 
-          href={fileUrl} 
+          href={`${process.env.NEXT_PUBLIC_ENDPOINT}/${fileUrl}`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
         >
           <FaFilePdf className="w-5 h-5 text-red-500" />
-          <span className="text-sm underline">{fileName}</span>
+          <span className="text-sm underline">{title+'.pdf'}</span>
         </a>
         
         {isAdmin && user && (
