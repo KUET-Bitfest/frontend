@@ -20,6 +20,7 @@ export function LoginModal() {
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const [open, setOpen] = useState(false)
     const router = useRouter()
     const { toast } = useToast()
 
@@ -45,15 +46,8 @@ export function LoginModal() {
         if(id !=null) {
             console.log(id)
             localStorage.setItem('token', JSON.stringify(ans))
-            // push_messaging_token();
-            // if(ans.role == 1) {
-            //     router.push('/hotels')
-            // }
-            // else {
-            //     router.push(`/hotel_owner_dashboard/${id}`)
-            // }
-            router.push('/')
-
+            setOpen(false)
+            window.location.reload()
         }
         if(ans.detail == "error") {
         toast({
@@ -65,7 +59,7 @@ export function LoginModal() {
     }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="text" className="text-text-primary font-bold">Sign In</Button>
       </DialogTrigger>
