@@ -21,6 +21,8 @@ import { formatTimestamp } from "@/components/utilities/time"
 import { Dot } from '@/components/ui/components/status'
 import { Badge } from '@/components/ui/components/badge'
 import { Textarea } from "@/components/ui/components/textarea"
+import { useEffect } from 'react'
+
 
 export default function AdminTrainPage() {
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -50,9 +52,27 @@ export default function AdminTrainPage() {
     },
   ])
 
+
+  async function fetchTrainingData() {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/training-data/all`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${JSON.parse(localStorage.getItem('token')).access_token}`
+      }
+    })
+    const data = await response.json()
+    console.log("data", data)
+    setTrainDataState(data)
+  }
+
+  useEffect(() => {
+    fetchTrainingData()
+  }, [])
+
   const truncateText = (text, maxLength = 50) => {
-    if (text.length > maxLength) {
-      return text.substring(0, maxLength) + '...'
+    if (text?.length > maxLength) {
+      return text?.substring(0, maxLength) + '...'
     }
     return text
   }
@@ -165,7 +185,7 @@ export default function AdminTrainPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredData.map((item) => (
+            {filteredData.length>0 && filteredData.map((item) => (
               <TableRow 
                 key={item.id}
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
