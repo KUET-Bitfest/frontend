@@ -4,8 +4,18 @@ import BarChartComponent from '@/components/charts/BarChartComponent'
 import LineChartComponent from '@/components/charts/LineChartComponent'
 import Loading from '@/components/ui/components/loading';
 import { useState, useEffect } from 'react'
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/components/table"
+import { useRouter } from 'next/navigation'
 
 export default function AdminStatisticsPage() {
+  const router = useRouter()
   const [statistics, setStatistics] = useState({
     pdf_stats: {
       pdf_stats_graph: []
@@ -18,6 +28,10 @@ export default function AdminStatisticsPage() {
     },
     training_data_stats: {
       training_stats_graph: []
+    },
+    top_contributors: {
+      translators: [],
+      training_data: []
     }
   });
   const [loading, setLoading] = useState(true);
@@ -46,6 +60,7 @@ export default function AdminStatisticsPage() {
 
       const data = await response.json();
       setStatistics(data);
+      console.log(data)
     } catch (err) {
       setError(err.message);
       console.error('Error fetching statistics:', err);
@@ -58,6 +73,10 @@ export default function AdminStatisticsPage() {
     fetchStatistics();
   }, []);
 
+  const handleUserClick = (userId) => {
+    router.push(`/profile/${userId}`)
+  }
+
   if (loading) {
     return (
       <Loading />
@@ -66,8 +85,8 @@ export default function AdminStatisticsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-red-500 text-center">
+      <div className="flex items-center justify-center h-[calc(100vh-5rem)] w-full">
+        <div className="text-red-500 text-center flex flex-col items-center justify-center h-full">
           <p className="text-xl font-semibold">Error loading statistics</p>
           <p className="text-sm mt-2">{error}</p>
           <button 
@@ -82,7 +101,7 @@ export default function AdminStatisticsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full w-full">
+    <div className="px-6 space-y-6 h-full w-full">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Statistics</h1>
         <button
@@ -96,8 +115,7 @@ export default function AdminStatisticsPage() {
         </button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Story Generation Chart */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <BarChartComponent
             data={statistics.pdf_stats.pdf_stats_graph}
@@ -107,7 +125,6 @@ export default function AdminStatisticsPage() {
           />
         </div>
         
-        {/* Chatbot Interactions Chart */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <BarChartComponent
             data={statistics.chat_stats.chat_stats_graph}
@@ -117,7 +134,6 @@ export default function AdminStatisticsPage() {
           />
         </div>
         
-        {/* Translation Usage Chart */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <LineChartComponent
             data={statistics.translation_stats.translation_stats_graph}
@@ -128,7 +144,6 @@ export default function AdminStatisticsPage() {
           />
         </div>
         
-        {/* Training Data Chart */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <LineChartComponent
             data={statistics.training_data_stats.training_stats_graph}
@@ -139,6 +154,66 @@ export default function AdminStatisticsPage() {
               { dataKey: "total", color: "#8884d8", name: "Total" }
             ]}
           />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-32">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-12">
+          <h2 className="text-lg font-semibold mb-4">Top Translators</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Translations</TableHead>
+                <TableHead>Words</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {statistics?.top_contributors?.translators.map((translator) => (
+                <TableRow key={translator.user_id}>
+                  <TableCell>
+                    <button
+                      onClick={() => handleUserClick(translator.user_id)}
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-left"
+                    >
+                      {translator.name}
+                    </button>
+                  </TableCell>
+                  <TableCell>{translator.translation_count}</TableCell>
+                  <TableCell>{translator.words_translated}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-12">
+          <h2 className="text-lg font-semibold mb-4">Top Training Contributors</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Approved</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {statistics?.top_contributors?.training_data.map((contributor) => (
+                <TableRow key={contributor.user_id}>
+                  <TableCell>
+                    <button
+                      onClick={() => handleUserClick(contributor.user_id)}
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-left"
+                    >
+                      {contributor.name}
+                    </button>
+                  </TableCell>
+                  <TableCell>{contributor.total_contributions}</TableCell>
+                  <TableCell>{contributor.approved_contributions}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

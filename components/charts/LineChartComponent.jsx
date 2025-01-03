@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 export default function LineChartComponent({ data, title, lines }) {
   return (
-    <div className="w-full h-[300px]">
+    <div className="w-full h-[350px]">
       <h2 className="text-lg font-semibold mb-4">{title}</h2>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart

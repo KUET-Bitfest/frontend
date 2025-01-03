@@ -66,8 +66,8 @@ export default function StatisticsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-red-500 text-center">
+      <div className="flex items-center justify-center h-[calc(100vh-5rem)]">
+        <div className="text-red-500 text-center flex flex-col items-center justify-center">
           <p className="text-xl font-semibold">Error loading statistics</p>
           <p className="text-sm mt-2">{error}</p>
           <button 

@@ -119,7 +119,7 @@ const ProfileCard = () => {
                     </a>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {pdf.tags.split(',').map((tag, i) => (
+                    {pdf?.tags?.split(',').map((tag, i) => (
                       <span key={i} className="px-2 py-1 bg-gray-200 rounded-full text-sm">
                         {tag}
                       </span>

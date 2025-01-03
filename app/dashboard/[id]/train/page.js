@@ -169,7 +169,7 @@ export default function TrainDataPage() {
             <TableRow>
               <TableHead className="w-[400px]">Banglish Prompt</TableHead>
               <TableHead className="w-[400px]">Bengali Answer</TableHead>
-              <TableHead className="w-[200px]">Timestamp</TableHead>
+              <TableHead className="w-[200px]">Time</TableHead>
               <TableHead className="w-[150px]">Status</TableHead>
             </TableRow>
           </TableHeader>

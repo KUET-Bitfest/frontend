@@ -12,6 +12,7 @@ import {
 import { BiBookContent } from 'react-icons/bi'
 import { cn } from '@/components/utilities/cn'
 import Hero from '@/components/utils/Hero'
+import { VscOutput } from 'react-icons/vsc'
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname()
@@ -35,6 +36,12 @@ export default function AdminLayout({ children }) {
       icon: <MdDashboard className="w-6 h-6" />,
       href: "/admin/train",
       description: "Manage training data"
+    },
+    {
+      title: "Logs",
+      icon: <VscOutput className="w-6 h-6" />,
+      href: "/admin/logs",
+      description: "View system logs"
     }
   ]
 
@@ -51,7 +58,7 @@ export default function AdminLayout({ children }) {
         <div 
           className={cn(
             "bg-white dark:bg-gray-800 h-full transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700",
-            collapsed ? "w-20" : "w-64"
+            collapsed ? "w-20" : "w-80"
           )}
         >
           {/* Sidebar Header */}

@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 export default function BarChartComponent({ data, title, dataKey, fill = "#8884d8" }) {
   return (
-    <div className="w-full h-[300px]">
+    <div className="w-full h-[350px]">
       <h2 className="text-lg font-semibold mb-4">{title}</h2>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
