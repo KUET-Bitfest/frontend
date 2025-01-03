@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -13,35 +12,44 @@ import { BiBookContent } from 'react-icons/bi'
 import { cn } from '@/components/utilities/cn'
 import Hero from '@/components/utils/Hero'
 import { VscOutput } from 'react-icons/vsc'
+import { useLanguage } from '@/components/context/LanguageContext'
+import { translations } from '@/components/constants/languages'
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const { currentLanguage } = useLanguage()
 
   const menuItems = [
     {
-      title: "Statistics",
+      title: translations.admin.menu.statistics.title[currentLanguage],
       icon: <MdAnalytics className="w-6 h-6" />,
       href: "/admin/statistics",
-      description: "View all translation stats"
+      description: translations.admin.menu.statistics.description[currentLanguage]
     },
     {
-      title: "Documents",
+      title: translations.admin.menu.documents.title[currentLanguage],
       icon: <BiBookContent className="w-6 h-6" />,
       href: "/admin/documents",
-      description: "Manage all documents"
+      description: translations.admin.menu.documents.description[currentLanguage]
     },
     {
-      title: "Train Data",
+      title: translations.admin.menu.trainData.title[currentLanguage],
       icon: <MdDashboard className="w-6 h-6" />,
       href: "/admin/train",
-      description: "Manage training data"
+      description: translations.admin.menu.trainData.description[currentLanguage]
     },
     {
-      title: "Logs",
+      title: translations.admin.menu.logs.title[currentLanguage],
       icon: <VscOutput className="w-6 h-6" />,
       href: "/admin/logs",
-      description: "View system logs"
+      description: translations.admin.menu.logs.description[currentLanguage]
+    },
+    {
+      title: translations.admin.menu.adminList.title[currentLanguage],
+      icon: <MdDashboard className="w-6 h-6" />,
+      href: "/admin/adminlist",
+      description: translations.admin.menu.adminList.description[currentLanguage]
     }
   ]
 
@@ -63,7 +71,9 @@ export default function AdminLayout({ children }) {
         >
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            {!collapsed && <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Admin Panel</h2>}
+            {!collapsed && <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              {translations.admin.title[currentLanguage]}
+            </h2>}
             <button 
               onClick={() => setCollapsed(!collapsed)}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"

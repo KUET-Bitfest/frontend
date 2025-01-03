@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -13,37 +13,51 @@ import { BiBookContent } from 'react-icons/bi'
 import { cn } from '@/components/utilities/cn'
 import Hero from '@/components/utils/Hero'
 import { useParams } from 'next/navigation';
+import { useLanguage } from '@/components/context/LanguageContext'
+import { translations } from '@/components/constants/languages'
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const { id } = useParams();
+  const { currentLanguage } = useLanguage();
+  console.log(currentLanguage);
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  if (!mounted) {
+    return null;
+  }
+  
   const menuItems = [
     {
-      title: "Statistics",
+      title: translations.common.dashboard.menu.statistics.title[currentLanguage],
       icon: <MdAnalytics className="w-6 h-6" />,
       href: `/dashboard/${id}/statistics`,
-      description: "View your translation stats"
+      description: translations.common.dashboard.menu.statistics.description[currentLanguage]
     },
     {
-      title: "Documents",
+      title: translations.common.dashboard.menu.documents.title[currentLanguage],
       icon: <BiBookContent className="w-6 h-6" />,
-      href: `/dashboard/${id}/documents`,
-      description: "Manage your documents"
+      href: `/dashboard/${id}/documents`, 
+      description: translations.common.dashboard.menu.documents.description[currentLanguage]
     },
     {
-      title: "Train Data",
+      title: translations.common.dashboard.menu.trainData.title[currentLanguage],
       icon: <MdDashboard className="w-6 h-6" />,
       href: `/dashboard/${id}/train`,
-      description: "Train translation models"
+      description: translations.common.dashboard.menu.trainData.description[currentLanguage]
     },
     {
-      title: "Profile",
+      title: translations.common.dashboard.menu.profile.title[currentLanguage],
       icon: <MdDashboard className="w-6 h-6" />,
       href: `/dashboard/${id}/profile`,
-      description: "Manage your profile"
+      description: translations.common.dashboard.menu.profile.description[currentLanguage]
     }
-  ]
+  ];
 
   return (
     <div className="flex flex-col h-screen">
@@ -63,7 +77,9 @@ export default function DashboardLayout({ children }) {
         >
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            {!collapsed && <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Dashboard</h2>}
+            {!collapsed && <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              {translations?.dashboard?.title?.[currentLanguage] || 'Dashboard'}
+            </h2>}
             <button 
               onClick={() => setCollapsed(!collapsed)}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"

@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono, Lato, Titillium_Web } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from 'next-themes' 
+import { LanguageProvider } from '../components/context/LanguageContext';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,9 +37,11 @@ export default function RootLayout({ children }) {
       <body
         className={`${lato.variable} antialiased`}
       >
-        <ThemeProvider attribute="class">
-          {children}
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider attribute="class">
+            {children}
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -1,7 +1,5 @@
 "use client"
 import { Quicksand, Poppins, Lato } from 'next/font/google'
-const poppins = Lato({ subsets: ['latin'], weight: '700' })
-const playfair = Quicksand({ subsets: ['latin'], weight: '400' })
 import Lottie from 'lottie-react'
 import landing from '@/components/lottie/ai.json'
 import Link from 'next/link'
@@ -9,48 +7,67 @@ import { Button } from '@/components/ui/components/button'
 import { BsLightningFill } from 'react-icons/bs'
 import { MdTranslate, MdChat, MdPictureAsPdf, MdVoiceChat } from 'react-icons/md'
 import SupportChat from '@/components/utils/chat/SupportChat'
-import { useEffect } from 'react'
-import { emailSend } from '@/components/utilities/sms'
+import { useLanguage } from '@/components/context/LanguageContext'
+import { translations } from '@/components/constants/languages'
 import Hero from '@/components/utils/Hero'
 
+const poppins = Lato({ subsets: ['latin'], weight: '700' })
+const playfair = Quicksand({ subsets: ['latin'], weight: '400' })
+
 export default function Home() {
+  const { currentLanguage } = useLanguage();
+
   const features = [
     {
       icon: <MdTranslate className="w-6 h-6 text-primary" />,
-      title: "Smart Translation",
-      description: "Instant Banglish to Bangla conversion with AI-powered accuracy"
+      title: translations.landing.features.smartTranslation.title[currentLanguage],
+      description: translations.landing.features.smartTranslation.description[currentLanguage]
     },
     {
       icon: <MdChat className="w-6 h-6 text-primary" />,
-      title: "Intelligent Chatbot",
-      description: "Interactive conversations in both Banglish and Bangla"
+      title: translations.landing.features.intelligentChatbot.title[currentLanguage],
+      description: translations.landing.features.intelligentChatbot.description[currentLanguage]
     },
     {
       icon: <MdPictureAsPdf className="w-6 h-6 text-primary" />,
-      title: "PDF Export",
-      description: "Export and share your translated content easily"
+      title: translations.landing.features.pdfExport.title[currentLanguage],
+      description: translations.landing.features.pdfExport.description[currentLanguage]
     },
     {
       icon: <MdVoiceChat className="w-6 h-6 text-primary" />,
-      title: "Voice Features",
-      description: "Voice input and output for seamless interaction"
+      title: translations.landing.features.voiceFeatures.title[currentLanguage],
+      description: translations.landing.features.voiceFeatures.description[currentLanguage]
     }
   ]
 
   return (
     <main className={`${playfair.className} w-full overflow-hidden h-screen bg-main-bg dark:bg-menu-secondary`}>
       <nav className='sticky bg-main-bg dark:bg-menu-secondary z-50 h-20'>
-        <Hero landing = {true} />
+        <Hero landing={true} />
       </nav>
       <section className='h-[90%] flex flex-col mx-auto'>
         <div className='flex w-[90%] mx-auto h-screen justify-center items-center bg-light-blue dark:bg-slate-900 rounded-t-3xl'>
           <div className='w-[55%] flex flex-col justify-center items-center'>
-            <Button variant="outline" center leftIcon={<BsLightningFill />}>Translate Instantly</Button>
-            <h1 className={`${poppins.className} mt-4 mb-4 text-text-primary text-center tracking-wider font-bold text-3xl w-[46rem] bg-clip-text`}>"Express in Banglish, Share in Bangla: Bayanno Makes it Simple!"</h1>
-            <p className='text-md text-center mx-auto w-[78%] bg-clip-text leading-[2rem] text-text-primary'>Transform your Banglish text into beautiful Bangla instantly. Whether you're writing stories, chatting, or creating content, Bayanno is your smart companion for seamless language conversion.</p>
+            <Button 
+              variant="outline" 
+              center 
+              leftIcon={<BsLightningFill />}
+            >
+              {translations.landing.hero.translateInstantly[currentLanguage]}
+            </Button>
+            <h1 className={`${poppins.className} mt-4 mb-4 text-text-primary text-center tracking-wider font-bold text-3xl w-[46rem] bg-clip-text`}>
+              {translations.landing.hero.title[currentLanguage]}
+            </h1>
+            <p className='text-md text-center mx-auto w-[78%] bg-clip-text leading-[2rem] text-text-primary'>
+              {translations.landing.hero.subtitle[currentLanguage]}
+            </p>
             <div className='p-6 flex justify-center gap-4'>
-              <Button size="sm" variant="primary" to="/signup">Try For Free</Button>
-              <Button size="sm" variant="outline" to="/pricing">View Pricing</Button>
+              <Button size="sm" variant="primary" to="/signup">
+                {translations.landing.hero.tryForFree[currentLanguage]}
+              </Button>
+              <Button size="sm" variant="outline" to="/pricing">
+                {translations.landing.hero.viewPricing[currentLanguage]}
+              </Button>
             </div>
           </div>
           <Lottie className='w-[45%]' animationData={landing} />
