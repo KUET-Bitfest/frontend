@@ -2,13 +2,16 @@
 import { useState, useRef } from "react";
 import { BsFillSendFill } from 'react-icons/bs';
 import { FaImage } from 'react-icons/fa';
+import { IoDocumentAttach } from 'react-icons/io5';
 import Messages from "./Messages";
 
 export default function ChatContainer() {
   const [messages, setMessages] = useState([]);
   const [messageContent, setMessageContent] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const id = Math.ceil(Math.random() * 100000000);
   const url = `https://api.openai.com/v1/chat/completions`;
 
@@ -38,104 +41,155 @@ export default function ChatContainer() {
     }
   };
 
-  async function handleSubmit() {
-    if (!messageContent.trim() && !selectedImage) return;
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+    }
+  };
 
-    // Create the message to display in chat
+  const handleFileClick = () => {
+    pdfInputRef.current.click();
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = '';
+    }
+  };
+
+  async function handleSubmit() {
+    if (!messageContent.trim() && !selectedImage && !selectedFile) return;
+
     const newMessage = {
       id,
       content: messageContent,
       image: selectedImage?.preview,
+      fileName: selectedFile?.name,
       owner: "owner"
     };
 
-    // Add message to chat immediately
-    setMessageContent("");
+    // Add user message
     setMessages(prevMessages => [...prevMessages, newMessage]);
+    
+    // Add empty AI message immediately to show loader
+    const aiMessageId = Math.ceil(Math.random() * 100000000);
+    setMessages(prevMessages => [...prevMessages, {
+      id: aiMessageId,
+      owner: "ai"
+    }]);
+
+    setMessageContent("");
 
     try {
-      // Prepare the message content for API
-      let apiMessageContent = [];
-      
-      // Add text content if exists
-      if (newMessage.content.trim()) {
-        apiMessageContent.push({
-          type: "text",
-          text: newMessage.content
+      let answer;
+
+      // Handle PDF file differently
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/ai/file-vision?prompt=${encodeURIComponent(messageContent)}`, {
+          method: 'POST',
+          body: formData
         });
-      }
 
-      // Add image content if exists
-      if (selectedImage) {
-        apiMessageContent.push({
-          type: "image_url",
-          image_url: {
-            url: selectedImage.preview
-          }
-        });
-      }
+        if (!response.ok) {
+          throw new Error('PDF processing failed');
+        }
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are a helpful AI assistant that provides accurate and concise answers."
-            },
-            ...messages.map(msg => ({
-              role: msg.owner === "owner" ? "user" : "assistant",
-              content: msg.image 
-                ? [
-                    { type: "text", text: msg.content || "" },
-                    { 
-                      type: "image_url",
-                      image_url: {
-                        url: msg.image
-                      }
-                    }
-                  ]
-                : msg.content
-            })),
-            {
-              role: "user",
-              content: apiMessageContent
-            }
-          ],
-          max_tokens: 300
-        })
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        const answer = data.choices[0].message.content;
-        setMessages(prevMessages => [...prevMessages, {
-          id: Math.ceil(Math.random() * 100000000),
-          content: answer,
-          owner: "ai"
-        }]);
+        const data = await response.json();
+        answer = data.response || 'Failed to process PDF';
       } else {
-        console.error("Failed to send message:", data.error?.message || "Unknown error");
+        // Existing image/text handling code
+        let apiMessageContent = [];
+        
+        if (newMessage.content.trim()) {
+          apiMessageContent.push({
+            type: "text",
+            text: newMessage.content
+          });
+        }
+
+        if (selectedImage) {
+          apiMessageContent.push({
+            type: "image_url",
+            image_url: {
+              url: selectedImage.preview
+            }
+          });
+        }
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: "You are a helpful AI assistant that provides accurate and concise answers. Always respond in Bangla language. User might give you prompts in english alphabets that has bengali meanings. but you should respond in Bangla language."
+              },
+              ...messages.map(msg => ({
+                role: msg.owner === "owner" ? "user" : "assistant",
+                content: msg.image 
+                  ? [
+                      { type: "text", text: msg.content || "" },
+                      { 
+                        type: "image_url",
+                        image_url: {
+                          url: msg.image
+                        }
+                      }
+                    ]
+                  : msg.content
+              })),
+              {
+                role: "user",
+                content: apiMessageContent
+              }
+            ],
+            max_tokens: 300
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error?.message || "Unknown error");
+        }
+        answer = data.choices[0].message.content;
       }
+
+      // Update messages with the response
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === aiMessageId 
+            ? { ...msg, content: answer }
+            : msg
+        )
+      );
 
       // Clean up
       setSelectedImage(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (pdfInputRef.current) pdfInputRef.current.value = '';
+
     } catch (error) {
       console.error("Error:", error);
+      // Remove loading message on error
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg.id !== aiMessageId)
+      );
     }
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] scrollbar-hidden">
+    <div className="flex flex-col h-full scrollbar-hidden">
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4">
         <h1 className="text-2xl font-bold text-white">AI Chat Assistant</h1>
       </div>
@@ -145,22 +199,35 @@ export default function ChatContainer() {
           <Messages messages={messages} />
         </div>
 
-        {selectedImage && (
+        {(selectedImage || selectedFile) && (
           <div className="px-4 py-2 bg-slate-800">
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <img 
-                  src={selectedImage.preview} 
-                  alt="Selected" 
-                  className="h-20 w-20 object-cover rounded"
-                />
-                <button
-                  onClick={removeSelectedImage}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 text-white text-xs"
-                >
-                  ×
-                </button>
-              </div>
+              {selectedImage && (
+                <div className="relative">
+                  <img 
+                    src={selectedImage.preview} 
+                    alt="Selected" 
+                    className="h-20 w-20 object-cover rounded"
+                  />
+                  <button
+                    onClick={removeSelectedImage}
+                    className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 text-white text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              {selectedFile && (
+                <div className="flex items-center gap-2 bg-slate-700 rounded px-3 py-2">
+                  <span className="text-white text-sm">{selectedFile.name}</span>
+                  <button
+                    onClick={removeSelectedFile}
+                    className="text-red-500 hover:text-red-400"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -182,12 +249,26 @@ export default function ChatContainer() {
               accept="image/*"
               className="hidden"
             />
+            <input
+              type="file"
+              ref={pdfInputRef}
+              onChange={handleFileSelect}
+              accept=".pdf"
+              className="hidden"
+            />
             <button 
               onClick={handleImageClick}
               className="p-2 text-gray-400 hover:text-white transition-colors"
               title="Add image"
             >
               <FaImage className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={handleFileClick}
+              className="p-2 text-gray-400 hover:text-white transition-colors"
+              title="Add PDF"
+            >
+              <IoDocumentAttach className="w-5 h-5" />
             </button>
             <button 
               onClick={handleSubmit}

@@ -11,6 +11,7 @@ import { MdTranslate, MdChat, MdPictureAsPdf, MdVoiceChat } from 'react-icons/md
 import SupportChat from '@/components/utils/chat/SupportChat'
 import { useEffect } from 'react'
 import { emailSend } from '@/components/utilities/sms'
+import Hero from '@/components/utils/Hero'
 
 export default function Home() {
   const features = [
@@ -38,6 +39,9 @@ export default function Home() {
 
   return (
     <main className={`${playfair.className} w-full overflow-hidden h-screen bg-main-bg dark:bg-menu-secondary`}>
+      <nav className='sticky bg-main-bg dark:bg-menu-secondary z-50 h-20'>
+        <Hero landing = {true} />
+      </nav>
       <section className='h-[90%] flex flex-col mx-auto'>
         <div className='flex w-[90%] mx-auto h-screen justify-center items-center bg-light-blue dark:bg-slate-900 rounded-t-3xl'>
           <div className='w-[55%] flex flex-col justify-center items-center'>

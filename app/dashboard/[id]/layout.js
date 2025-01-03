@@ -4,18 +4,16 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  MdTranslate, 
-  MdHistory, 
-  MdPictureAsPdf,
-  MdChat,
-  MdSettings,
   MdDashboard,
-  MdVoiceChat,
-  MdHelp,
+  MdPictureAsPdf,
+  MdSettings,
+  MdHelpOutline,
   MdMenu,
-  MdChevronLeft
+  MdChevronLeft,
+  MdAnalytics 
 } from 'react-icons/md'
-import { BiBookContent } from 'react-icons/bi'
+import { BiBookContent, BiHistory, BiMicrophone } from 'react-icons/bi'
+import { FaHandsHelping } from 'react-icons/fa'
 import { cn } from '@/components/utilities/cn'
 
 export default function DashboardLayout({ children }) {
@@ -27,43 +25,43 @@ export default function DashboardLayout({ children }) {
       title: "Overview",
       icon: <MdDashboard className="w-6 h-6" />,
       href: "/dashboard",
-      description: "Translation stats and activity"
-    },
-    {
-      title: "Quick Translate",
-      icon: <MdTranslate className="w-6 h-6" />,
-      href: "/dashboard/translate",
-      description: "Banglish to Bangla conversion"
+      description: "Your translation stats"
     },
     {
       title: "My Documents",
       icon: <BiBookContent className="w-6 h-6" />,
       href: "/dashboard/documents",
-      description: "Manage saved translations"
+      description: "Saved translations"
     },
     {
-      title: "Chat Assistant",
-      icon: <MdChat className="w-6 h-6" />,
-      href: "/dashboard/chat",
-      description: "AI-powered chat help"
-    },
-    {
-      title: "Voice Input",
-      icon: <MdVoiceChat className="w-6 h-6" />,
+      title: "Voice Features",
+      icon: <BiMicrophone className="w-6 h-6" />,
       href: "/dashboard/voice",
-      description: "Voice translation"
+      description: "Voice translation tools"
     },
     {
       title: "History",
-      icon: <MdHistory className="w-6 h-6" />,
+      icon: <BiHistory className="w-6 h-6" />,
       href: "/dashboard/history",
       description: "Past translations"
     },
     {
-      title: "PDF Export",
+      title: "PDF Manager",
       icon: <MdPictureAsPdf className="w-6 h-6" />,
       href: "/dashboard/pdf",
-      description: "Generate PDF documents"
+      description: "Manage PDF exports"
+    },
+    {
+      title: "Contributions",
+      icon: <FaHandsHelping className="w-6 h-6" />,
+      href: "/dashboard/contribute",
+      description: "Help improve translations"
+    },
+    {
+      title: "Analytics",
+      icon: <MdAnalytics className="w-6 h-6" />,
+      href: "/dashboard/analytics",
+      description: "Usage statistics"
     },
     {
       title: "Settings",
@@ -72,8 +70,8 @@ export default function DashboardLayout({ children }) {
       description: "Account preferences"
     },
     {
-      title: "Help & Support",
-      icon: <MdHelp className="w-6 h-6" />,
+      title: "Help",
+      icon: <MdHelpOutline className="w-6 h-6" />,
       href: "/dashboard/help",
       description: "Get assistance"
     }

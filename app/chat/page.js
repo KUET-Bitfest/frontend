@@ -1,10 +1,19 @@
 "use client"
 
+import ChatContainer from '@/components/chat/ChatContainer'
+import Hero from '@/components/utils/Hero'
+
 export default function ChatPage() {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Chat Assistant</h1>
-      {/* Chat interface will be added here */}
+    <main className='bg-main-bg dark:bg-menu-secondary h-full w-full' >
+      <nav className='sticky bg-main-bg dark:bg-menu-secondary z-50 h-20'>
+        <Hero landing = {true} />
+      </nav>
+      <div className="container w-full mx-auto h-full">
+        <div className="h-full w-full rounded-lg overflow-hidden shadow-lg">
+            <ChatContainer />
+        </div>
     </div>
+    </main>
   )
 } 

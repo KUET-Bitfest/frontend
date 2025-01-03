@@ -1,10 +1,17 @@
 "use client"
 
+import Hero from "@/components/utils/Hero"
+import Translator from "@/components/utils/Translator"
+
 export default function TranslatePage() {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Translate</h1>
-      {/* Translation interface will be added here */}
-    </div>
+    <main className='bg-main-bg dark:bg-menu-secondary h-screen w-full' >
+      <nav className='sticky bg-main-bg dark:bg-menu-secondary z-50 h-20'>
+        <Hero landing={true} />
+      </nav>
+      <div className="container mx-auto flex justify-center items-center h-full">
+        <Translator />
+      </div>
+    </main>
   )
 } 

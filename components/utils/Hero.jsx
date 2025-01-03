@@ -5,12 +5,13 @@ import { useEffect, useState, useRef } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
 import { AiOutlineMenu, AiOutlineClose } from 'react-icons/ai'
 import { usePathname, useRouter } from 'next/navigation'
-import { MdTranslate, MdHistory } from 'react-icons/md'
+import { MdTranslate, MdHistory, MdSearch } from 'react-icons/md'
 import { Button } from '../ui/components/button'
 import ThemeChanger from '../utilities/ThemeChanger'
 import TabItem from '../ui/components/tab-item'
 import LoginModal from '../login/LoginModal'
 import Notification from '../websocket/Notification'
+import SearchSidebar from './SearchSidebar'
 
 const kameron = Kameron({ subsets: ['latin'], weight: '700' })
 
@@ -23,6 +24,7 @@ export default function Hero({ landing = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0); 
   const notificationRef = useRef(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   useEffect(() => {
     let token = localStorage.getItem("token")
@@ -83,6 +85,13 @@ export default function Hero({ landing = true }) {
 
         {/* Auth Controls - Right */}
         <div className='flex-none flex items-center space-x-4'>
+          <Button
+            variant="icon"
+            onClick={() => setIsSearchOpen(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          >
+            <MdSearch className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+          </Button>
           <ThemeChanger />
           {!signedIn ? (
             <>
@@ -155,6 +164,10 @@ export default function Hero({ landing = true }) {
           )}
         </div>
       </div>
+      <SearchSidebar 
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </>
   )
 }
