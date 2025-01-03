@@ -1,6 +1,6 @@
 "use client"
 import Lottie from "lottie-react";
-import loading from '@/components/lottie/loader3.json'
+import loading from '@/components/lottie/loader1.json'
 
 export default function Loading() {
   return (
