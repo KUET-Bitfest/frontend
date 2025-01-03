@@ -18,8 +18,8 @@ export default function Messages({ messages }) {
       {messages.map(message => (
         <Message 
           key={message.id}
-          sender={message.owner}
-          messageContent={message.content}
+          type={message.type}
+          message={message.message}
           image={message.image}
         />
       ))}

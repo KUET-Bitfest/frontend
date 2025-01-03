@@ -1,9 +1,12 @@
 "use client"
-import { useState } from 'react'
-import { Mic, MicOff, ArrowRight, Volume2, VolumeX, History, X, Copy } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Mic, MicOff, ArrowRight, Volume2, VolumeX, History, X, Copy, Trash2 } from 'lucide-react'
 import { Button } from '../ui/components/button'
 import { mockTranslations } from '@/mock/data'
 import { format } from 'date-fns'
+import { Toaster } from "@/components/ui/components/toaster"
+import { useToast } from '@/hooks/use-toast';
+import { Description } from '@radix-ui/react-dialog'
 
 export default function Translator() {
   const [inputText, setInputText] = useState('')
@@ -12,6 +15,61 @@ export default function Translator() {
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState([])
+  const { toast } = useToast()
+
+  const handleSaveTranslation = async (outputText) => {
+    const token = JSON.parse(localStorage.getItem("token"))
+    const response = await fetch(process.env.NEXT_PUBLIC_ENDPOINT +'/translation/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token.access_token,
+        "ngrok-skip-browser-warning": "69420"
+      },
+      body: JSON.stringify({ banglish_text:inputText , bangla_text:outputText}),
+    });
+    const data = await response.json();
+    console.log(data);
+  }
+  
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (showHistory) {
+        try {
+          const token = JSON.parse(localStorage.getItem("token"))
+          const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/translation/me`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token.access_token,
+              "ngrok-skip-browser-warning": "69420"
+            }
+          });
+          const data = await response.json();
+          setHistory(data);
+        } catch (error) {
+          console.error('Error fetching history:', error);
+        }
+      }
+    };
+
+    fetchHistory();
+  }, [showHistory]);
+
+  const handleDeleteHistory = async (id) => {
+    const token = JSON.parse(localStorage.getItem("token"))
+    const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/translation/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + token.access_token,
+      }
+    });
+    if (response.ok) {
+      toast({ variant: "success", description: "Translation deleted successfully" });
+      setHistory(history.filter(item => item.id !== id));
+    }
+  }
 
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
@@ -43,6 +101,8 @@ export default function Translator() {
       const data = await response.json();
       if (response.ok) {
         setOutputText(data.choices[0].message.content);
+          handleSaveTranslation(data.choices[0].message.content);
+        
       } else {
         throw new Error(data.error?.message || 'Translation failed');
       }
@@ -51,6 +111,7 @@ export default function Translator() {
       setOutputText('Translation failed. Please try again.');
     } finally {
       setIsTranslating(false);
+      
     }
   };
 
@@ -198,22 +259,30 @@ export default function Translator() {
             </button>
           </div>
           <div className="p-6 space-y-6">
-            {mockTranslations.map((item) => (
+            { history && history?.map((item) => (
               <div key={item.id} className="bg-slate-700 rounded-lg p-6 space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="text-sm text-gray-400">
-                    {format(new Date(item.timestamp), 'MMM d, yyyy h:mm a')}
+                    {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
                   </div>
                   <div className="flex gap-2">
+                    
                     <button
-                      onClick={() => copyToClipboard(item.banglish)}
+                      onClick={() => handleDeleteHistory(item.id)}
+                      className="p-2 hover:bg-slate-600 rounded"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-5 h-5 text-[#e13a3a]" />
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(item.banglish_text)}
                       className="p-2 hover:bg-slate-600 rounded"
                       title="Copy Banglish"
                     >
                       <Copy className="w-5 h-5 text-gray-400" />
                     </button>
                     <button
-                      onClick={() => copyToClipboard(item.bengali)}
+                      onClick={() => copyToClipboard(item.bangla_text)}
                       className="p-2 hover:bg-slate-600 rounded"
                       title="Copy Bengali"
                     >
@@ -221,13 +290,14 @@ export default function Translator() {
                     </button>
                   </div>
                 </div>
-                <div className="text-lg text-white">{item.banglish}</div>
-                <div className="text-lg text-white font-bengali">{item.bengali}</div>
+                <div className="text-lg text-white">{item.banglish_text}</div>
+                <div className="text-lg text-white font-bengali">{item.bangla_text}</div>
               </div>
             ))}
           </div>
         </div>
       )}
+      <Toaster />
     </div>
   )
 } 
