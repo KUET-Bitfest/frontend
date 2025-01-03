@@ -2,55 +2,40 @@
 
 import { useState } from 'react'
 import { PDFCard } from "@/components/ui/components/pdf-card"
+import useFetch from '@/ApiHandle/useFetch'
 
 export default function DocumentsPage() {
   const [selectedFilter, setSelectedFilter] = useState('all')
-  const [documents, setDocuments] = useState([
-    {
-      id: 1,
-      title: "Medical Report Translation",
-      caption: "Translated from English to Bengali",
-      status: "private",
-      fileName: "medical_report_2024.pdf",
-      fileUrl: "example.pdf"
-    },
-    {
-      id: 2,
-      title: "Academic Certificate",
-      caption: "Official document translation",
-      status: "public",
-      fileName: "certificate_2024.pdf",
-      fileUrl: "example.pdf"
-    },
-    {
-      id: 3,
-      title: "Legal Document",
-      caption: "Contract translation with certification",
-      status: "private",
-      fileName: "legal_doc_2024.pdf",
-      fileUrl: "example.pdf"
-    },
-    {
-      id: 4,
-      title: "Research Paper",
-      caption: "Technical document translation",
-      status: "public",
-      fileName: "research_2024.pdf",
-      fileUrl: "example.pdf"
-    }
-  ])
+  const {data :documents, loading, error, setData} = useFetch(`/pdf/user/me`)
 
-  const handleStatusChange = (docId, newStatus) => {
-    setDocuments(docs => 
-      docs.map(doc => 
-        doc.id === docId ? { ...doc, status: newStatus } : doc
+  const handleStatusChange = async (docId, newStatus) => { 
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/pdf/${docId}/switch`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('token')).access_token}`
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update status')
+      }
+
+      // Update the documents state with the new status
+      setData(prevDocs => 
+        prevDocs.map(doc => 
+          doc.id === docId ? { ...doc, is_public: newStatus === 'public' } : doc
+        )
       )
-    )
+    } catch (error) {
+      console.error('Error updating document status:', error)
+    }
   }
 
   const filteredDocuments = selectedFilter === 'all' 
     ? documents 
-    : documents.filter(doc => doc.status === selectedFilter)
+    : documents?.filter(doc => doc.is_public === selectedFilter)
 
   return (
     <div className="space-y-6">
@@ -75,8 +60,8 @@ export default function DocumentsPage() {
               id="public"
               name="filter"
               value="public"
-              checked={selectedFilter === 'public'}
-              onChange={(e) => setSelectedFilter(e.target.value)}
+              checked={selectedFilter === true}
+              onChange={(e) => setSelectedFilter(true)}
               className="text-green-600 focus:ring-green-500"
             />
             <label htmlFor="public" className="text-sm text-gray-700 dark:text-gray-200">Public</label>
@@ -87,8 +72,8 @@ export default function DocumentsPage() {
               id="private"
               name="filter"
               value="private"
-              checked={selectedFilter === 'private'}
-              onChange={(e) => setSelectedFilter(e.target.value)}
+              checked={selectedFilter === false}
+              onChange={(e) => setSelectedFilter(false)}
               className="text-yellow-600 focus:ring-yellow-500"
             />
             <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-200">Private</label>
@@ -97,14 +82,14 @@ export default function DocumentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDocuments.map((doc) => (
+        {filteredDocuments?.map((doc) => (
           <PDFCard
             key={doc.id}
             title={doc.title}
             caption={doc.caption}
-            status={doc.status}
+            status={doc.is_public ? 'public' : 'private'}
             fileName={doc.fileName}
-            fileUrl={doc.fileUrl}
+            fileUrl={doc.pdf_url}
             onStatusChange={(newStatus) => handleStatusChange(doc.id, newStatus)}
           />
         ))}
