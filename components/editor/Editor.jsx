@@ -5,9 +5,6 @@ import TextStyle from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import Image from '@tiptap/extension-image'
-import { Extension } from '@tiptap/core'
-import { Plugin } from 'prosemirror-state'
-import { Decoration, DecorationSet } from 'prosemirror-view'
 import { useState, useEffect, useRef } from 'react'
 import { 
   Bold, 
@@ -21,48 +18,17 @@ import {
   ChevronDown,
   Image as ImageIcon,
   Type,
-  AlertCircle
+  FileDown,
+  Eye
 } from 'lucide-react'
-
-// Custom extension for spell checking
-const SpellChecker = Extension.create({
-  name: 'spellchecker',
-  
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        props: {
-          decorations: (state) => {
-            const { doc } = state;
-            const decorations = [];
-            
-            doc.descendants((node, pos) => {
-              if (node.isText) {
-                const words = node.text.split(/\s+/);
-                let offset = 0;
-                
-                words.forEach(word => {
-                  if (word.length > 2 && !isWordValid(word)) {
-                    decorations.push(
-                      Decoration.inline(
-                        pos + offset,
-                        pos + offset + word.length,
-                        { class: 'typo-error' }
-                      )
-                    );
-                  }
-                  offset += word.length + 1;
-                });
-              }
-            });
-            
-            return DecorationSet.create(doc, decorations);
-          }
-        }
-      })
-    ];
-  }
-});
+import ErrorCheckModal from './ErrorCheckModal'
+import OpenAI from "openai"
+import { zodResponseFormat } from "openai/helpers/zod"
+import { z } from "zod"
+import html2pdf from 'html2pdf.js'
+import { Input } from "@/components/ui/components/input"
+import { Button } from "@/components/ui/components/button"
+import { cn } from "@/lib/utils"
 
 const fontFamilies = [
   { name: 'Default', value: 'Inter' },
@@ -77,6 +43,12 @@ const fontSizes = [
   '12px', '14px', '16px', '18px', '20px', '24px', '30px', '36px'
 ]
 
+// Define the schema for error analysis
+const ErrorAnalysis = z.object({
+  errorWords: z.array(z.string()),
+  suggestedText: z.string()
+});
+
 const Editor = () => {
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -84,8 +56,41 @@ const Editor = () => {
   const [showFontSize, setShowFontSize] = useState(false)
   const recognitionRef = useRef(null)
   const imageInputRef = useRef(null)
-  const [typos, setTypos] = useState(new Set());
-  const [suggestions, setSuggestions] = useState([]);
+  const [selectedText, setSelectedText] = useState('')
+  const [showErrorCheck, setShowErrorCheck] = useState(false)
+  const [errorCheckPosition, setErrorCheckPosition] = useState({ x: 0, y: 0 })
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
+  const [errorAnalysis, setErrorAnalysis] = useState(null)
+  const [documentMeta, setDocumentMeta] = useState({
+    title: '',
+    caption: ''
+  })
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  const handleTextSelection = () => {
+    if (editor) {
+      const { from, to } = editor.state.selection
+      const text = editor.state.doc.textBetween(from, to).trim()
+      
+      if (text) {
+        // Get the DOM node and position of the selection
+        const domSel = window.getSelection()
+        if (domSel.rangeCount > 0) {
+          const range = domSel.getRangeAt(0)
+          const rect = range.getBoundingClientRect()
+          
+          setSelectedText(text)
+          setErrorCheckPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.bottom + window.scrollY
+          })
+          setShowErrorCheck(true)
+        }
+      } else {
+        setShowErrorCheck(false)
+      }
+    }
+  }
 
   const editor = useEditor({
     extensions: [
@@ -95,39 +100,24 @@ const Editor = () => {
       Image.configure({
         allowBase64: true,
       }),
-      SpellChecker,
     ],
     content: '',
     editorProps: {
       attributes: {
         class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] w-full p-4',
       },
-    },
-    onUpdate: ({ editor }) => {
-      const content = editor.getHTML();
-      checkSpelling(content);
+      handleDOMEvents: {
+        mouseup: () => {
+          handleTextSelection()
+          return false
+        },
+        keyup: () => {
+          handleTextSelection()
+          return false
+        }
+      }
     },
   });
-
-  const checkSpelling = (content) => {
-    // Simple spell checking logic (replace with a proper dictionary/API)
-    const words = content.replace(/<[^>]*>/g, '').split(/\s+/);
-    const newTypos = new Set();
-    
-    words.forEach(word => {
-      if (word.length > 2 && !isWordValid(word)) {
-        newTypos.add(word);
-      }
-    });
-    
-    setTypos(newTypos);
-  };
-
-  const isWordValid = (word) => {
-    // Replace this with proper dictionary lookup or API call
-    const commonBanglaWords = new Set(['আমি', 'তুমি', 'সে', 'আমরা', 'তারা']);
-    return commonBanglaWords.has(word);
-  };
 
   useEffect(() => {
     // Initialize speech recognition
@@ -137,7 +127,7 @@ const Editor = () => {
       
       recognition.continuous = true
       recognition.interimResults = true
-      recognition.lang = 'bn-BD' // Set to Bangla
+      recognition.lang = 'bn-BD'
 
       recognition.onresult = (event) => {
         const transcript = Array.from(event.results)
@@ -146,7 +136,6 @@ const Editor = () => {
           .join('')
 
         if (event.results[0].isFinal && editor) {
-          // Insert text at current cursor position instead of replacing all content
           editor.commands.insertContent(transcript + ' ')
         }
       }
@@ -158,7 +147,7 @@ const Editor = () => {
 
       recognition.onend = () => {
         if (isListening) {
-          recognition.start() // Restart if it was supposed to be listening
+          recognition.start() 
         }
       }
 
@@ -219,12 +208,225 @@ const Editor = () => {
     }
   }
 
+  const checkErrors = async () => {
+    setShowErrorCheck(false)
+    setIsErrorModalOpen(true)
+    
+    try {
+      const openai = new OpenAI({
+        apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY,
+        dangerouslyAllowBrowser: true
+      });
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Banglish (Bengali written in English) text analyzer. Analyze the text for common errors and provide suggestions. Respond with a JSON object containing 'errorWords' (array of incorrect words) and 'suggestedText' (improved version)."
+          },
+          {
+            role: "user",
+            content: selectedText
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      const analysis = JSON.parse(completion.choices[0].message.content);
+      setErrorAnalysis(analysis);
+    } catch (error) {
+      console.error('Error checking text:', error);
+    }
+  }
+
+  const translateText = async () => {
+    setShowErrorCheck(false)
+    
+    try {
+      const openai = new OpenAI({
+        apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY,
+        dangerouslyAllowBrowser: true
+      });
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Banglish to Bangla translator. Convert the given Banglish text (Bengali language written in English alphabets) to proper Bangla text. Only return the translated Bengali text, nothing else."
+          },
+          {
+            role: "user",
+            content: selectedText
+          }
+        ]
+      });
+
+      const translatedText = completion.choices[0].message.content;
+      
+      // Replace the selected text with translated text
+      const { from, to } = editor.state.selection;
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContent(translatedText)
+        .run();
+
+    } catch (error) {
+      console.error('Error translating text:', error);
+    }
+  }
+
+  const generatePDF = (preview = false) => {
+    // Create a temporary div to render the content
+    const tempDiv = document.createElement('div')
+    
+    // Add the editor content to the div
+    tempDiv.innerHTML = editor.getHTML()
+    
+    // Add some styling to the temp div
+    tempDiv.style.padding = '40px'
+    tempDiv.style.fontSize = '14px'
+    tempDiv.style.fontFamily = 'Kalpurush, Inter, sans-serif'
+    
+    const opt = {
+      margin: 20,
+      filename: 'document.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait' 
+      }
+    }
+
+    if (preview) {
+      // For preview, generate and open in new tab
+      html2pdf().set(opt).from(tempDiv).outputPdf().then((pdf) => {
+        const blob = new Blob([pdf], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        window.open(url, '_blank')
+      })
+    } else {
+      // For download
+      html2pdf().set(opt).from(tempDiv).save()
+    }
+  }
+
+  const generateMetadata = async () => {
+    if (!editor?.getHTML()) return
+
+    setIsGenerating(true)
+    try {
+      const openai = new OpenAI({
+        apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY,
+        dangerouslyAllowBrowser: true
+      });
+
+      const content = editor.getHTML().replace(/<[^>]*>/g, '')
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a document metadata generator. You must ALWAYS respond in Bengali script (not Banglish). Generate a concise title (around 10 words) and a descriptive caption (20-30 words) for the given content. The content might be in English, Banglish, or Bengali - but your response must always be in Bengali script. Respond in JSON format with 'title' and 'caption' fields."
+          },
+          {
+            role: "user",
+            content: content
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      const metadata = JSON.parse(completion.choices[0].message.content);
+      setDocumentMeta({
+        title: metadata.title,
+        caption: metadata.caption
+      });
+    } catch (error) {
+      console.error('Error generating metadata:', error);
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   if (!editor) {
     return null
   }
 
   return (
     <div className="flex flex-col gap-4 w-full h-full p-4 bg-slate-900 scrollbar-hidden">
+      {/* Document Metadata Section */}
+      <div className="bg-slate-800 rounded-lg overflow-hidden">
+        <div className="p-6 space-y-6">
+          {/* Title Section */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400">
+              Title
+            </label>
+            <Input
+              value={documentMeta.title}
+              onChange={(e) => setDocumentMeta(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="Enter a descriptive title..."
+              className="w-full bg-slate-700/50 border-slate-600/50 text-white text-lg font-medium placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* Caption Section */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400">
+              Caption
+            </label>
+            <Input
+              value={documentMeta.caption}
+              onChange={(e) => setDocumentMeta(prev => ({ ...prev, caption: e.target.value }))}
+              placeholder="Add a brief description..."
+              className="w-full bg-slate-700/50 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* AI Generation Button */}
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={generateMetadata}
+              disabled={!editor?.getHTML() || isGenerating}
+              
+            >
+              <div className="flex items-center gap-2">
+                {isGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="text-white/70">Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-white">Generate Using</span>
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium text-purple-100 bg-purple-500/50 rounded-full group-hover:bg-purple-500/70 transition-colors">
+                      AI
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Hover tooltip */}
+              {!isGenerating && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 text-sm text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  Generate title and caption from content
+                </div>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg sticky top-0 z-10">
         {/* Font Family Dropdown */}
@@ -327,6 +529,23 @@ const Editor = () => {
 
         <div className="flex-1" />
 
+        {/* PDF Buttons */}
+        <button
+          onClick={() => generatePDF(true)}
+          className="p-2 rounded hover:bg-slate-600 text-white flex items-center gap-2"
+          title="Preview PDF"
+        >
+          <Eye className="w-5 h-5" />
+        </button>
+        
+        <button
+          onClick={() => generatePDF(false)}
+          className="p-2 rounded hover:bg-slate-600 text-white flex items-center gap-2"
+          title="Download PDF"
+        >
+          <FileDown className="w-5 h-5" />
+        </button>
+
         {/* Voice Input and Speech buttons */}
         <button
           onClick={toggleVoiceInput}
@@ -356,14 +575,6 @@ const Editor = () => {
       {/* Editor Content */}
       <div className="flex-1 bg-slate-800 rounded-lg overflow-auto text-white relative scrollbar-hidden">
         <EditorContent editor={editor} />
-        
-        {/* Typo indicators */}
-        {typos.size > 0 && (
-          <div className="absolute bottom-4 left-4 bg-red-600/90 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{typos.size} possible spelling errors</span>
-          </div>
-        )}
       </div>
 
       {/* Voice Input Status */}
@@ -374,34 +585,51 @@ const Editor = () => {
         </div>
       )}
 
-      <style jsx global>{`
-        .typo-error {
-          text-decoration: wavy underline red;
-          text-decoration-skip-ink: none;
-        }
-        
-        .suggestion-popup {
-          position: absolute;
-          background: #1e293b;
-          border-radius: 0.5rem;
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-          padding: 0.5rem;
-          z-index: 50;
-        }
-        
-        .suggestion-item {
-          display: block;
-          width: 100%;
-          padding: 0.5rem 1rem;
-          text-align: left;
-          color: white;
-          border-radius: 0.25rem;
-        }
-        
-        .suggestion-item:hover {
-          background: #334155;
-        }
-      `}</style>
+      {/* Error Check Tooltip */}
+      {showErrorCheck && (
+        <div 
+          className="fixed z-50 bg-slate-800 rounded-lg shadow-lg p-2 cursor-pointer"
+          style={{
+            left: `${errorCheckPosition.x + 80}px`,
+            top: `${errorCheckPosition.y + 10}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div className="flex gap-2">
+            <button
+              onClick={checkErrors}
+              className="px-3 py-1.5 text-sm text-white hover:text-purple-400 flex items-center gap-2"
+            >
+              <span>Check for errors</span>
+              <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full">
+                AI
+              </span>
+            </button>
+
+            <div className="w-px bg-slate-600" /> {/* Divider */}
+
+            <button
+              onClick={translateText}
+              className="px-3 py-1.5 text-sm text-white hover:text-purple-400 flex items-center gap-2"
+            >
+              <span>Translate</span>
+              <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full">
+                AI
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Check Modal */}
+      <ErrorCheckModal
+        isOpen={isErrorModalOpen}
+        onClose={() => setIsErrorModalOpen(false)}
+        originalText={selectedText}
+        errorWords={errorAnalysis?.errorWords || []}
+        suggestedText={errorAnalysis?.suggestedText || ''}
+        editor={editor}
+      />
     </div>
   )
 }

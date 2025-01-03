@@ -26,32 +26,32 @@ export default function Notification() {
 
     fetchNotifications();
 
-    const newWs = new WebSocket(`${WS_ENDPOINT}/notification/ws/1`);
-    setWs(newWs);
+    // const newWs = new WebSocket(`${WS_ENDPOINT}/notification/ws/1`);
+    // setWs(newWs);
 
-    newWs.onmessage = (event) => {
-      try {
-        const newNotification = JSON.parse(event.data);
-        setNotifications((prev) => {
-          if (prev.some((n) => n.id === newNotification.id)) return prev;
-          return [{ ...newNotification, is_read: false }, ...prev];
-        });
-        setUnreadCount((prev) => prev + 1);
-      } catch (error) {
-        console.error("Error processing WebSocket message:", error);
-      }
-    };
+    // newWs.onmessage = (event) => {
+    //   try {
+    //     const newNotification = JSON.parse(event.data);
+    //     setNotifications((prev) => {
+    //       if (prev.some((n) => n.id === newNotification.id)) return prev;
+    //       return [{ ...newNotification, is_read: false }, ...prev];
+    //     });
+    //     setUnreadCount((prev) => prev + 1);
+    //   } catch (error) {
+    //     console.error("Error processing WebSocket message:", error);
+    //   }
+    // };
 
-    newWs.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+    // newWs.onerror = (error) => {
+    //   console.error("WebSocket error:", error);
+    // };
 
-    return () => {
-      if (newWs) {
-        newWs.close();
-      }
-      setWs(null);
-    };
+    // return () => {
+    //   if (newWs) {
+    //     newWs.close();
+    //   }
+    //   setWs(null);
+    // };
   }, []);
 
   useEffect(() => {
