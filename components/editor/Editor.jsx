@@ -5,6 +5,7 @@ import TextStyle from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import Image from '@tiptap/extension-image'
+import { client } from '@/liveblocks.config'
 import { useState, useEffect, useRef } from 'react'
 import { 
   Bold, 
@@ -26,6 +27,14 @@ import html2pdf from 'html2pdf.js'
 import { Input } from "@/components/ui/components/input"
 import { Button } from "@/components/ui/components/button"
 import { cn } from "@/lib/utils"
+import { RoomProvider, useLiveblocks } from "@liveblocks/react";
+import { useRoom, useSelf, useOthers } from "@liveblocks/react";
+import { LiveList, LiveObject } from "@liveblocks/client";
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+import Collaboration from '@tiptap/extension-collaboration'
+import { ClientSideSuspense } from "@liveblocks/react";
+import { LiveblocksProvider } from "@liveblocks/react";
+import { createClient } from "@liveblocks/client";
 
 const fontFamilies = [
   { name: 'Default', value: 'Inter' },
@@ -46,7 +55,7 @@ const ErrorAnalysis = z.object({
   suggestedText: z.string()
 });
 
-const Editor = () => {
+const Editor = ({ roomId }) => {
   const [showFontFamily, setShowFontFamily] = useState(false)
   const [showFontSize, setShowFontSize] = useState(false)
   const imageInputRef = useRef(null)
@@ -63,6 +72,55 @@ const Editor = () => {
   const [isListening, setIsListening] = useState(false);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+
+  // Get room after editor is initialized
+  const room = useRoom();
+  const others = useOthers();
+  const currentUser = useSelf();
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        history: false,
+      }),
+      TextStyle,
+      FontFamily,
+      Image.configure({
+        allowBase64: true,
+      }),
+      Collaboration.configure({
+        document: room?.document,
+        field: 'content',
+        user: {
+          name: currentUser?.info?.name || 'Anonymous',
+          color: currentUser?.info?.color || '#000000',
+        },
+      }),
+      CollaborationCursor.configure({
+        provider: room,
+        user: {
+          name: currentUser?.info?.name || 'Anonymous',
+          color: currentUser?.info?.color || '#000000',
+        },
+      }),
+    ],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] w-full p-4',
+      },
+      handleDOMEvents: {
+        mouseup: () => {
+          handleTextSelection()
+          return false
+        },
+        keyup: () => {
+          handleTextSelection()
+          return false
+        }
+      }
+    },
+  });
 
   const handleTextSelection = () => {
     if (editor) {
@@ -88,33 +146,6 @@ const Editor = () => {
       }
     }
   }
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      TextStyle,
-      FontFamily,
-      Image.configure({
-        allowBase64: true,
-      }),
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] w-full p-4',
-      },
-      handleDOMEvents: {
-        mouseup: () => {
-          handleTextSelection()
-          return false
-        },
-        keyup: () => {
-          handleTextSelection()
-          return false
-        }
-      }
-    },
-  });
 
   const addImage = () => {
     imageInputRef.current?.click()
@@ -462,6 +493,28 @@ const Editor = () => {
     return buffer2;
   }
 
+  // Add a presence indicator to show who's currently editing
+  const Presence = () => {
+    const others = useOthers();
+    
+    return (
+      <div className="fixed bottom-4 right-4 flex flex-col gap-2">
+        {others.map(({ connectionId, info }) => (
+          <div 
+            key={connectionId}
+            className="flex items-center gap-2 bg-slate-700 rounded-full px-3 py-1"
+          >
+            <div 
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: info.color }}
+            />
+            <span className="text-sm text-white">{info.name}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (!editor) {
     return null
   }
@@ -708,8 +761,37 @@ const Editor = () => {
         suggestedText={errorAnalysis?.suggestedText || ''}
         editor={editor}
       />
+
+      {/* Add Presence indicator */}
+      <Presence />
     </div>
   )
 }
 
-export default Editor 
+// Create a wrapper component that provides the Room context
+const EditorWithProviders = ({ roomId }) => {
+    const client = createClient({
+        publicApiKey: "pk_dev_zvxQ7wkHbZ1euy0E2r8GWhYDYvt-iKZXQeja0KRgPAYFg-7KaADcbenlbnCfq4vB",
+        throttle: 100,
+      });
+
+  return (
+    <LiveblocksProvider client={client}>
+      <RoomProvider
+        id={roomId ?? "default-room"} 
+        initialPresence={{
+          cursor: null,
+          name: "Anonymous",
+          color: "#" + Math.floor(Math.random()*16777215).toString(16),
+        }}
+      >
+        <ClientSideSuspense fallback={<div>Loading...</div>}>
+          {() => <Editor roomId={roomId} />}
+        </ClientSideSuspense>
+      </RoomProvider>
+    </LiveblocksProvider>
+  );
+};
+
+// Export the wrapped component instead
+export default EditorWithProviders; 
