@@ -1,17 +1,19 @@
 "use client"
-import { Caveat, Kameron, Nunito } from 'next/font/google'
+import { Caveat, Kameron, Nunito, Rye } from 'next/font/google'
 import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
-import { AiOutlineMenu, AiOutlineClose } from 'react-icons/ai'
+import { AiOutlineMenu, AiOutlineClose, AiFillRobot } from 'react-icons/ai'
 import { usePathname, useRouter } from 'next/navigation'
-import { MdTranslate, MdHistory, MdSearch } from 'react-icons/md'
+import { MdTranslate, MdHistory, MdSearch, MdLanguage } from 'react-icons/md'
 import { Button } from '../ui/components/button'
 import ThemeChanger from '../utilities/ThemeChanger'
 import TabItem from '../ui/components/tab-item'
 import LoginModal from '../login/LoginModal'
 import Notification from '../websocket/Notification'
 import SearchSidebar from './SearchSidebar'
+import { RiAiGenerate, RiBrainLine } from 'react-icons/ri'
+import Image from 'next/image'
 
 const kameron = Kameron({ subsets: ['latin'], weight: '700' })
 
@@ -70,8 +72,12 @@ export default function Hero({ landing = true }) {
       <div className='flex justify-between items-center px-8 py-4 text-white w-[90%] mx-auto'>  
         {/* Logo - Left */}
         <div className='flex-none'>
-          <Link href={'/'} className={`${kameron.className} text-2xl text-text-primary font-black`}>
-            <h1>Bayanno</h1>
+          <Link href={'/'} className='flex items-end gap-2'>
+            <Image src={'/logo.png'} width={48} height={48} />
+            <span className={`${kameron.className} text-3xl font-black`}>
+              <span className="text-grey">Bayanno</span>
+              <span className="text-primary">.ai</span>
+            </span>
           </Link>
         </div>
 
