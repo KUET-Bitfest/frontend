@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from "lucide-react"
 import { IoDocumentAttach } from 'react-icons/io5';
 
-export default function Message({ sender, messageContent, image, fileName }) {
-  const isOwner = sender === 'owner';
-  
+export default function Message({ type, message, image, fileName }) {
+  const isOwner = type === 'owner';
+  console.log(message,isOwner ,type);
   return (
     <div className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[70%] rounded-lg px-4 py-2 ${
@@ -29,13 +29,13 @@ export default function Message({ sender, messageContent, image, fileName }) {
             <span>{fileName}</span>
           </div>
         )}
-        {messageContent === undefined && !isOwner ? (
+        {message === undefined && !isOwner ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">Processing...</span>
           </div>
         ) : (
-          <p className="text-sm whitespace-pre-wrap">{messageContent}</p>
+          <p className="text-sm whitespace-pre-wrap">{message}</p>
         )}
       </div>
     </div>
