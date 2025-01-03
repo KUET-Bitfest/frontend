@@ -2,18 +2,25 @@
 import { useEffect, useState } from 'react';
 import useFetch from '@/ApiHandle/useFetch';
 import { useParams } from 'next/navigation';
+import { formatTimestamp } from '@/components/utilities/time'
+import Hero from '@/components/utils/Hero';
 
 const ProfileCard = () => {
     const id = useParams().id;
     const { data: profileInfo, loading } = useFetch(`/user/${id}`);
     const [activeTab, setActiveTab] = useState('public');
     const { data: pdfDetails } = useFetch(`/pdf/user/${id}`);
+    const { data: stories } = useFetch(`/story-vision/all`);
     const publicPdfs = pdfDetails?.filter(pdf => pdf.is_public) || [];
     const privatePdfs = pdfDetails?.filter(pdf => !pdf.is_public) || [];
 
+
     return (
-      <div>
-         <div className="grid gap-4 p-4 lg:grid-cols-3 mx-5 md:mx-40 my-10">
+      <main className='bg-main-bg dark:bg-menu-secondary h-full w-full' >
+      <nav className='sticky bg-main-bg dark:bg-menu-secondary z-50 h-20'>
+        <Hero landing = {true} />
+      </nav>
+        <div className="grid gap-4 p-4 lg:grid-cols-3 mx-5 md:mx-40 my-10">
             <div className="flex flex-col items-center justify-center text-center bg-gray-100 pt-2 rounded-lg">
                 <div className="rounded-full">
                     {profileInfo?.img_url ? (
@@ -141,17 +148,10 @@ const ProfileCard = () => {
                       <h3 className="text-lg font-medium">{pdf.title}</h3>
                       <p className="text-gray-600">{pdf.caption}</p>
                     </div>
-                    <a 
-                      href={`${process.env.NEXT_PUBLIC_ENDPOINT}/${pdf.pdf_url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      View PDF
-                    </a>
+                   
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {pdf.tags.split(',').map((tag, i) => (
+                    {pdf.tags?.split(',').map((tag, i) => (
                       <span key={i} className="px-2 py-1 bg-gray-200 rounded-full text-sm">
                         {tag}
                       </span>
@@ -167,7 +167,42 @@ const ProfileCard = () => {
           )}
         </div>
       </div>
-      </div> 
+
+      <div className="bg-gray-100 lg:p-4 px-2 py-4 rounded-lg lg:col-span-3 mx-5 md:mx-40 my-10">
+        <div className="grid grid-cols-1 gap-4 px-4 lg:px-8 py-2">
+          <div className="flex justify-between items-center">
+            <div className="contact-item text-lg font-bold">Story Visions</div>
+          </div>
+          
+          {stories?.length > 0 ? (
+            stories.map((story, index) => (
+              <div key={index} className="flex flex-col gap-2 p-4 border rounded-lg">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-medium">{story.title}</h3>
+                    <p className="text-gray-600">{formatTimestamp(story.created_at)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a 
+                      href={`${story.story_vision_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      View
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-500 text-center py-4">
+              No stories available
+            </div>
+          )}
+        </div>
+      </div>
+      </main> 
     );
 };
 

@@ -4,6 +4,7 @@ COPY package*.json ./
 
 RUN npm install --legacy-peer-deps
 COPY . .
-RUN npm run build
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV development
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]

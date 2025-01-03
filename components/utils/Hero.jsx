@@ -74,7 +74,7 @@ export default function Hero({ landing = true }) {
         {/* Logo - Left */}
         <div className='flex-none'>
           <Link href={'/'} className='flex items-end gap-2'>
-            <Image src={'/logo.png'} width={48} height={48} />
+            <Image src={'/logo.png'} alt='logo' width={48} height={48} />
             <span className={`${kameron.className} text-3xl font-black`}>
               <span className="text-grey">Bayanno</span>
               <span className="text-primary">.ai</span>
