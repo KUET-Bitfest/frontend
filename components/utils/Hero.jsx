@@ -120,9 +120,9 @@ export default function Hero({ landing = true }) {
                     <img 
                       src="/profile.png" 
                       alt="Profile" 
-                      className="w-8 h-8 rounded-full"
+                      className="w-10 h-10 rounded-full"
                     />
-                    <AiOutlineMenu className='text-xl text-gray-600 dark:text-gray-300' />
+                    {/* <AiOutlineMenu className='text-xl text-gray-600 dark:text-gray-300' /> */}
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className='bg-white dark:bg-gray-800 mr-8 mt-2 p-2 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 min-w-[200px] z-50'>
