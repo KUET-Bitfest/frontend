@@ -10,7 +10,7 @@ export default function ChatPage() {
         <Hero landing = {true} />
       </nav>
       <div className="container w-full mx-auto h-full">
-        <div className="h-full w-full rounded-lg overflow-hidden shadow-lg">
+        <div className="h-[calc(100vh-140px)] w-full rounded-lg overflow-hidden shadow-lg">
             <ChatContainer />
         </div>
     </div>
