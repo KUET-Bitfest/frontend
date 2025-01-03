@@ -17,7 +17,9 @@ import {
   Image as ImageIcon,
   Type,
   FileDown,
-  Eye
+  Eye,
+  Wand2,
+  BookOpen
 } from 'lucide-react'
 import ErrorCheckModal from './ErrorCheckModal'
 import OpenAI from "openai"
@@ -27,6 +29,8 @@ import html2pdf from 'html2pdf.js'
 import { Input } from "@/components/ui/components/input"
 import { Button } from "@/components/ui/components/button"
 import { cn } from "@/lib/utils"
+import ImageGenerationModal from './ImageGenerationModal'
+import StoryGenerationModal from './StoryGenerationModal'
 
 const fontFamilies = [
   { name: 'Default', value: 'Inter' },
@@ -65,6 +69,8 @@ const Editor = () => {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [showImageGenModal, setShowImageGenModal] = useState(false)
+  const [showStoryModal, setShowStoryModal] = useState(false)
 
   const handleTextSelection = () => {
     if (editor) {
@@ -469,6 +475,14 @@ const Editor = () => {
     return buffer2;
   }
 
+  const handleGeneratedImage = (imageUrl) => {
+    editor?.chain().focus().setImage({ src: imageUrl }).run()
+  }
+
+  const handleGeneratedStory = (story) => {
+    editor?.chain().focus().insertContent(story).run()
+  }
+
   if (!editor) {
     return null
   }
@@ -480,9 +494,6 @@ const Editor = () => {
         <div className="p-6 space-y-6">
           {/* Title Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400">
-              Title
-            </label>
             <Input
               value={documentMeta.title}
               onChange={(e) => setDocumentMeta(prev => ({ ...prev, title: e.target.value }))}
@@ -493,13 +504,10 @@ const Editor = () => {
 
           {/* Caption Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400">
-              Caption
-            </label>
             <Input
               value={documentMeta.caption}
               onChange={(e) => setDocumentMeta(prev => ({ ...prev, caption: e.target.value }))}
-              placeholder="Add a brief description..."
+              placeholder="Add a brief caption..."
               className="w-full bg-slate-700/50 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
             />
           </div>
@@ -628,6 +636,14 @@ const Editor = () => {
           <ImageIcon className="w-5 h-5 text-white" />
         </button>
 
+        <button
+          onClick={() => setShowImageGenModal(true)}
+          className="p-2 rounded hover:bg-slate-600"
+          title="Generate image with AI"
+        >
+          <Wand2 className="w-5 h-5 text-white" />
+        </button>
+
         <input
           type="file"
           ref={imageInputRef}
@@ -635,6 +651,14 @@ const Editor = () => {
           accept="image/*"
           className="hidden"
         />
+
+        <button
+          onClick={() => setShowStoryModal(true)}
+          className="p-2 rounded hover:bg-slate-600"
+          title="Generate story with AI"
+        >
+          <BookOpen className="w-5 h-5 text-white" />
+        </button>
 
         <div className="flex-1" />
 
@@ -735,6 +759,18 @@ const Editor = () => {
         errorWords={errorAnalysis?.errorWords || []}
         suggestedText={errorAnalysis?.suggestedText || ''}
         editor={editor}
+      />
+
+      <ImageGenerationModal
+        isOpen={showImageGenModal}
+        onClose={() => setShowImageGenModal(false)}
+        onGenerate={handleGeneratedImage}
+      />
+
+      <StoryGenerationModal
+        isOpen={showStoryModal}
+        onClose={() => setShowStoryModal(false)}
+        onGenerate={handleGeneratedStory}
       />
     </div>
   )
