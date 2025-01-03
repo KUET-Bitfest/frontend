@@ -18,7 +18,7 @@ export async function sendSMS(phoneNumber, message) {
 };
 
 
-export function emailSend(receiver_email, name, message, templateId) {
+export function emailSend(receiver_email, name, email,password, templateId) {
     let data = {
         service_id: process.env.NEXT_PUBLIC_SERVICE_ID,
         template_id: templateId,
@@ -26,7 +26,8 @@ export function emailSend(receiver_email, name, message, templateId) {
         template_params: {
             'receiver_email': receiver_email,
             'to_name': name,
-            'message' : message
+            'email': email,
+            'password': password
         }
     };
 
