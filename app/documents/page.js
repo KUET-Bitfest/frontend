@@ -4,10 +4,13 @@ import { useState } from 'react'
 import { PDFCard } from "@/components/ui/components/pdf-card"
 import useFetch from '@/ApiHandle/useFetch'
 import Hero from '@/components/utils/Hero'
+import { Button } from '@/components/ui/components/button'
+import { useRouter } from 'next/navigation'
 
 export default function DocumentsPage() {
   const [selectedFilter, setSelectedFilter] = useState('all')
   const {data :documents, loading, error, setData} = useFetch(`/pdf/all`)
+  const router = useRouter()
 
   const filteredDocuments = selectedFilter === 'all' 
     ? documents 
@@ -59,6 +62,15 @@ export default function DocumentsPage() {
                   />
                   <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-200">Private</label>
                 </div>
+              </div>
+              <div className="ml-auto">
+              <Button
+                onClick={() => router.push('/documents/new')}
+                variant="primary"
+                
+              >
+                Add New Document
+              </Button>
               </div>
             </div>
 
