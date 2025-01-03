@@ -74,8 +74,8 @@ export const mockTranslations = [
   },
   {
     id: 3,
-    banglish: "Ami bhalo achi",
-    bengali: "আমি ভালো আছি",
+    banglish: "Amar sonar bangla ami tomay valobashi",
+    bengali: "আমার সোনার বাংলা আমি তোমায় ভালোবাসি",
     timestamp: "2024-03-15T10:20:00"
   },
   {

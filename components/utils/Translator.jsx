@@ -187,14 +187,14 @@ export default function Translator() {
 
       {/* History Sidebar */}
       {showHistory && (
-        <div className="fixed right-0 top-0 h-full w-[500px] bg-slate-800 shadow-lg transform transition-transform z-50 overflow-y-auto">
+        <div className="fixed right-0 top-0 h-full w-[500px] dark:bg-slate-800 bg-main-bg shadow-lg transform transition-transform z-50 overflow-y-auto scrollbar-hidden">
           <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-white">Translation History</h2>
+            <h2 className="text-xl font-semibold text-text-primary">Translation History</h2>
             <button
               onClick={() => setShowHistory(false)}
               className="p-2 hover:bg-slate-700 rounded"
             >
-              <X className="w-6 h-6 text-white" />
+              <X className="w-6 h-6 text-text-primary" />
             </button>
           </div>
           <div className="p-6 space-y-6">

@@ -9,7 +9,7 @@ export default function TranslatePage() {
       <nav className='sticky bg-main-bg dark:bg-menu-secondary z-50 h-20'>
         <Hero landing={true} />
       </nav>
-      <div className="container mx-auto flex justify-center items-center h-full">
+      <div className="container mx-auto px-4 py-8">
         <Translator />
       </div>
     </main>
