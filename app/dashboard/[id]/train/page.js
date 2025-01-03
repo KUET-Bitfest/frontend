@@ -21,6 +21,7 @@ import { formatTimestamp } from "@/components/utilities/time"
 import { Dot } from '@/components/ui/components/status'
 import { Badge } from '@/components/ui/components/badge'
 import { Textarea } from "@/components/ui/components/textarea"
+import useFetch from '@/ApiHandle/useFetch'
 
 export default function TrainDataPage() {
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -31,31 +32,8 @@ export default function TrainDataPage() {
     banglishPrompt: '',
     bengaliAnswer: ''
   })
+  const {data:trainData, isLoading, isError,refetch} =  useFetch(`/training-data/me`)  
 
-  // Mock data - replace with actual data from your API/database
-  const trainData = [
-    {
-      id: 1,
-      banglishPrompt: "Amar sonar bangla ami tomake valobashi. Chirodin tomar akash tomar batash amar prane bajay bashi. O ma, fagune tor amer bone ghrane pagol kore, mori hay hay re. O ma, oghrane tor bhora khete ami ki dekhechhi modhur hashi.",
-      bengaliAnswer: "আমার সোনার বাংলা আমি তোমাকে ভালোবাসি। চিরদিন তোমার আকাশ তোমার বাতাস আমার প্রাণে বাজায় বাঁশি। ও মা, ফাগুনে তোর আমের বনে ঘ্রাণে পাগল করে, মরি হায় হায় রে। ও মা, অঘ্রাণে তোর ভরা ক্ষেতে আমি কি দেখেছি মধুর হাসি।",
-      timestamp: "2024-01-20T14:30:00",
-      status: "approved"
-    },
-    {
-      id: 2,
-      banglishPrompt: "Ami tomake valobashi",
-      bengaliAnswer: "আমি তোমাকে ভালোবাসি",
-      timestamp: "2024-01-20T15:45:00",
-      status: "pending"
-    },
-    {
-      id: 3,
-      banglishPrompt: "Kemon acho",
-      bengaliAnswer: "কেমন আছো",
-      timestamp: "2024-01-20T16:20:00",
-      status: "rejected"
-    },
-  ]
 
   const truncateText = (text, maxLength = 50) => {
     if (text.length > maxLength) {
@@ -66,12 +44,25 @@ export default function TrainDataPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'approved':
+      case 1:
         return 'success'
-      case 'pending':
+      case -1:
         return 'warning'
-      case 'rejected':
+      case 0:
         return 'danger'
+      default:
+        return ''
+    }
+  }
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 1:
+        return 'Approved'
+      case -1:
+        return 'Pending'  
+      case 0:
+        return 'Rejected'
       default:
         return ''
     }
@@ -79,11 +70,28 @@ export default function TrainDataPage() {
 
   const filteredData = selectedStatus === 'all' 
     ? trainData 
-    : trainData.filter(item => item.status === selectedStatus)
+    : trainData.filter(item => item.is_approved === selectedStatus)
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     // Here you would typically make an API call
-    console.log('Uploading new contribution:', newContribution)
+    const token = JSON.parse(localStorage.getItem("token"))
+    const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/training-data/create`,
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token.access_token,
+          "ngrok-skip-browser-warning": "69420"
+        },
+        body: JSON.stringify({
+            "banglish_text": newContribution.banglishPrompt,
+            "bangla_text": newContribution.bengaliAnswer
+        })
+    })
+    const data = await response.json()
+    console.log(data);
+    if (response.ok) {
+      refetch();
+    }
     setIsContributeModalOpen(false)
     setNewContribution({ banglishPrompt: '', bengaliAnswer: '' })
   }
@@ -121,8 +129,8 @@ export default function TrainDataPage() {
                 id="approved"
                 name="status"
                 value="approved"
-                checked={selectedStatus === 'approved'}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                checked={selectedStatus === 1}
+                onChange={(e) => setSelectedStatus(1)}
                 className="text-green-600 focus:ring-green-500"
               />
               <label htmlFor="approved" className="text-sm text-gray-700 dark:text-gray-200">Approved</label>
@@ -133,8 +141,8 @@ export default function TrainDataPage() {
                 id="pending"
                 name="status"
                 value="pending"
-                checked={selectedStatus === 'pending'}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                checked={selectedStatus === -1}
+                onChange={(e) => setSelectedStatus(-1)}
                 className="text-yellow-600 focus:ring-yellow-500"
               />
               <label htmlFor="pending" className="text-sm text-gray-700 dark:text-gray-200">Pending</label>
@@ -145,8 +153,8 @@ export default function TrainDataPage() {
                 id="rejected"
                 name="status"
                 value="rejected"
-                checked={selectedStatus === 'rejected'}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                checked={selectedStatus === 0}
+                onChange={(e) => setSelectedStatus(0)}
                 className="text-red-600 focus:ring-red-500"
               />
               <label htmlFor="rejected" className="text-sm text-gray-700 dark:text-gray-200">Rejected</label>
@@ -166,7 +174,7 @@ export default function TrainDataPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredData.map((item) => (
+            {filteredData?.map((item) => (
               <TableRow 
                 key={item.id}
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -176,16 +184,16 @@ export default function TrainDataPage() {
                 }}
               >
                 <TableCell className="font-medium max-w-[400px] truncate">
-                  {truncateText(item.banglishPrompt)}
+                  {truncateText(item.banglish_text)}
                 </TableCell>
                 <TableCell className="max-w-[400px] truncate">
-                  {truncateText(item.bengaliAnswer)}
+                  {truncateText(item.bangla_text)}
                 </TableCell>
-                <TableCell className="w-[200px]">{formatTimestamp(item.timestamp)}</TableCell>
+                <TableCell className="w-[200px]">{formatTimestamp(item.created_at)}</TableCell>
                 <TableCell className="w-[150px]">
                   <span className="flex items-center space-x-2">
-                    <Dot variant={getStatusColor(item.status)} />
-                    <Badge variant={getStatusColor(item.status)}>{item.status}</Badge>
+                    <Dot variant={getStatusColor(item.is_approved)} />
+                    <Badge variant={getStatusColor(item.is_approved)}>{getStatusText(item.is_approved)}</Badge>
                   </span>
                 </TableCell>
               </TableRow>
@@ -205,7 +213,7 @@ export default function TrainDataPage() {
                 Banglish Prompt
               </h3>
               <p className="text-lg text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                {selectedItem?.banglishPrompt}
+                {selectedItem?.banglish_text}
               </p>
             </div>
             <div>
@@ -213,15 +221,15 @@ export default function TrainDataPage() {
                 Bengali Answer
               </h3>
               <p className="text-lg text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                {selectedItem?.bengaliAnswer}
+                {selectedItem?.bangla_text}
               </p>
             </div>
             <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-              <span>{formatTimestamp(selectedItem?.timestamp)}</span>
+              <span>{formatTimestamp(selectedItem?.created_at)}</span>
               <span className="flex items-center space-x-2">
-                <Dot variant={getStatusColor(selectedItem?.status)} />
-                <Badge variant={getStatusColor(selectedItem?.status)}>
-                  {selectedItem?.status}
+                <Dot variant={getStatusColor(selectedItem?.is_approved)} />
+                <Badge variant={getStatusColor(selectedItem?.is_approved)}>
+                  {getStatusText(selectedItem?.is_approved)}
                 </Badge>
               </span>
             </div>

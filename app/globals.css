@@ -360,3 +360,24 @@ body {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
 }
+
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px; /* Width of the scrollbar */
+  height: 10px; /* Height of the scrollbar */  
+}
+  
+  /* Track */
+::-webkit-scrollbar-track {
+  background: transparent; /* Color of the track */
+}
+
+  
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    /* border: 2px solid black; /* Color of the scrollbar handle */   
+    border-radius: 5px;/*  Rounded corners of the handle */
+    background: #216A70; /* Color of the scrollbar handle */  
+  }
+  
