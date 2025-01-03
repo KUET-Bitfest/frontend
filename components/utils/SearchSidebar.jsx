@@ -3,38 +3,56 @@
 import { useState, useEffect } from 'react'
 import { MdClose, MdSearch } from 'react-icons/md'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 export default function SearchSidebar({ isOpen, onClose }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState({ users: [], pdfs: [] })
   const [isLoading, setIsLoading] = useState(false)
-
+  const router = useRouter()
+  console.log(searchResults)
   useEffect(() => {
     const fetchSearchResults = async () => {
       if (!searchQuery.trim()) {
         setSearchResults({ users: [], pdfs: [] })
         return
       }
-
+      console.log(searchQuery)
       setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/user/pdf/search?query=${encodeURIComponent(searchQuery)}`)
-        console.log(response.data)
+        let token = localStorage.getItem('token')
+        if (!token) {
+            return 
+        }
+        token = JSON.parse(token)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_ENDPOINT}/user/pdf/search?query=${searchQuery}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '69420',
+                'Authorization': `Bearer ${token.access_token}`
+            }
+        })
         if (!response.ok) throw new Error('Search failed')
         const data = await response.json()
+        console.log(data)
         setSearchResults(data)
+        console.log(searchResults)
       } catch (error) {
         console.error('Search error:', error)
-        // Optionally show error to user
       } finally {
         setIsLoading(false)
       }
     }
 
-    // Debounce the search to avoid too many requests
     const timeoutId = setTimeout(fetchSearchResults, 300)
     return () => clearTimeout(timeoutId)
   }, [searchQuery])
+
+  const handleUserClick = (userId) => {
+    console.info(userId)
+    router.push(`/profile/${userId}`)
+  }
 
   return (
     <div 
@@ -84,6 +102,7 @@ export default function SearchSidebar({ isOpen, onClose }) {
                     <div 
                       key={user.id}
                       className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+                      onClick={() => handleUserClick(user.id)}
                     >
                       <div className="relative w-10 h-10 rounded-full overflow-hidden">
                         <Image
