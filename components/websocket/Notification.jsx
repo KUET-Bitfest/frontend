@@ -4,6 +4,7 @@ import { FaBell } from "react-icons/fa";
 import { Dot } from "../ui/components/status";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../constants/languages";
+import { Button } from "../ui/components/button";
 
 export default function Notification() {
   const { currentLanguage } = useLanguage();
@@ -33,6 +34,7 @@ export default function Notification() {
         const data = await response.json();
         setNotifications(data);
         setUnreadCount(data.filter((n) => !n.is_read).length);
+        console.log(unreadCount)
       } catch (error) {
         console.error("Error fetching notifications:", error);
       }
@@ -40,59 +42,68 @@ export default function Notification() {
 
     fetchNotifications();
 
-    // const newWs = new WebSocket(`${WS_ENDPOINT}/notification/ws/1`);
-    // setWs(newWs);
+    let token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+    token = JSON.parse(token);
 
-    // newWs.onmessage = (event) => {
-    //   try {
-    //     const newNotification = JSON.parse(event.data);
-    //     setNotifications((prev) => {
-    //       if (prev.some((n) => n.id === newNotification.id)) return prev;
-    //       return [{ ...newNotification, is_read: false }, ...prev];
-    //     });
-    //     setUnreadCount((prev) => prev + 1);
-    //   } catch (error) {
-    //     console.error("Error processing WebSocket message:", error);
-    //   }
-    // };
+    const newWs = new WebSocket(`${WS_ENDPOINT}/notification/ws/${token.user_id}`);
+    setWs(newWs);
 
-    // newWs.onerror = (error) => {
-    //   console.error("WebSocket error:", error);
-    // };
+    newWs.onmessage = (event) => {
+      try {
+        const newNotification = JSON.parse(event.data);
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === newNotification.id)) return prev;
+          return [{ ...newNotification, is_read: false }, ...prev];
+        });
+        setUnreadCount((prev) => prev + 1);
+      } catch (error) {
+        console.error("Error processing WebSocket message:", error);
+      }
+    };
 
-    // return () => {
-    //   if (newWs) {
-    //     newWs.close();
-    //   }
-    //   setWs(null);
-    // };
+    newWs.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    return () => {
+      if (newWs) {
+        newWs.close();
+      }
+      setWs(null);
+    };
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) {
-      try {
-        let token = localStorage.getItem("token");
-        if (!token) {
-          return;
-        }
-        token = JSON.parse(token);
-        fetch(`${ENDPOINT}/notification/user/${token.user_id}`, {
-          method: "PUT",
-          headers : {'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token.access_token,
-            "ngrok-skip-browser-warning": "69420"
-          }
-        }).then(() => {
-          setUnreadCount(0);
-          setNotifications((prev) =>
-            prev.map((n) => ({ ...n, is_read: true }))
-          );
-        });
-      } catch (error) {
-        console.error("Error marking notifications as read:", error);
+  
+   
+    
+  async function markAllAsRead()
+  {
+    try {
+      let token = localStorage.getItem("token");
+      if (!token) {
+        return;
       }
+      token = JSON.parse(token);
+      fetch(`${ENDPOINT}/notification/user/${token.user_id}`, {
+        method: "PUT",
+        headers : {'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token.access_token,
+          "ngrok-skip-browser-warning": "69420"
+        }
+      }).then(() => {
+        setUnreadCount(0);
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, is_read: true }))
+        );
+      });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
     }
-  }, [isOpen]);
+  }
+ 
 
   return (
     <div className="relative">
@@ -116,6 +127,9 @@ export default function Notification() {
               {translations.notifications.title[currentLanguage]}{" "}
               {unreadCount > 0 && `(${unreadCount})`}
             </h2>
+            <div className="cursor-pointer text-sm text-gray-500" onClick={markAllAsRead}>
+              {translations.notifications.markAllRead[currentLanguage]}
+            </div>
           </div>
 
           <div className="divide-y divide-gray-200">
@@ -125,7 +139,7 @@ export default function Notification() {
               </div>
             ) : (
               <>
-                <button onClick={markAllAsRead}>
+                <button>
                   {translations.notifications.markAllRead[currentLanguage]}
                 </button>
                 {notifications.map((notification) => (

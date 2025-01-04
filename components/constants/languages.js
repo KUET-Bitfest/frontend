@@ -119,6 +119,10 @@ export const translations = {
     noNotifications: {
       en: "No notifications",
       bn: "কোন নোটিফিকেশন নেই"
+    },
+    markAllRead: {
+      en: "Mark all as read",
+      bn: "সবগুলো পঠিত হিসেবে চিহ্নিত করুন"
     }
   },
   common: {
