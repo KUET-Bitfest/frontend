@@ -4,6 +4,7 @@ import Message from './Message';
 
 export default function Messages({ messages }) {
   const messagesEndRef = useRef(null);
+  console.log(messages);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

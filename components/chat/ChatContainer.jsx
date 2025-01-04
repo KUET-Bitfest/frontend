@@ -192,7 +192,7 @@ export default function ChatContainer() {
         // Existing image/text handling code
         let apiMessageContent = [];
 
-        if (newMessage.message?.trim()) {
+        if (newMessage.message.trim()) {
           apiMessageContent.push({
             type: "text",
             text: newMessage.message,
@@ -208,63 +208,48 @@ export default function ChatContainer() {
           });
         }
 
-        try {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "gpt-4o",
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are a helpful AI assistant that provides accurate and concise answers. Always respond in Bangla language. User might give you prompts in english alphabets that has bengali meanings. but you should respond in Bangla language.",
-                },
-                ...messages.map((msg) => ({
-                  role: msg.owner === "owner" ? "user" : "assistant",
-                  content: msg.image && msg.owner === "owner"
-                    ? [
-                        { type: "text", text: msg.message || "" },
-                        {
-                          type: "image_url",
-                          image_url: {
-                            url: msg.image,
-                          },
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful AI assistant that provides accurate and concise answers. Always respond in Bangla language. User might give you prompts in english alphabets that has bengali meanings. but you should respond in Bangla language.",
+              },
+              ...messages.map((msg) => ({
+                role: msg.owner === "owner" ? "user" : "assistant",
+                content: msg.image && msg.owner === "owner"
+                  ? [
+                      { type: "text", text: msg.message || "" },
+                      {
+                        type: "image_url",
+                        image_url: {
+                          url: msg.image,
                         },
-                      ]
-                    : msg.message || "",
-                })),
-                {
-                  role: "user",
-                  content: apiMessageContent.length > 0 ? apiMessageContent : "",
-                },
+                      },
+                    ]
+                  : msg.message || msg.content,
+              })),
+              {
+                role: "user",
+                content: apiMessageContent,
+              },
               ],
               max_tokens: 300,
-            }),
-          });
+          }),
+        });
 
-          const data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(
-              data.error?.message || 
-              data.message || 
-              "Failed to get response from AI"
-            );
-          }
-
-          if (!data.choices?.[0]?.message?.content) {
-            throw new Error("Invalid response format from AI");
-          }
-
-          answer = data.choices[0].message.content;
-        } catch (error) {
-          console.error("Error in AI request:", error);
-          answer = "দুঃখিত, একটি ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error?.message || "Unknown error");
         }
+        answer = data.choices[0].message.content;
       }
       const isSaved = await handleSaveMessage({
         message : answer,
