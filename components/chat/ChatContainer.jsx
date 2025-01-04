@@ -137,11 +137,6 @@ export default function ChatContainer() {
         type: "owner",
     });
     setMessages((prevMessages) => [...prevMessages, newMessage]);
-      
-
-    // Add user message
-
-    // Add empty AI message immediately to show loader
     const aiMessageId = Math.ceil(Math.random() * 100000000);
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -155,8 +150,6 @@ export default function ChatContainer() {
 
     try {
       let answer;
-
-      // Handle PDF file differently
       if (selectedFile) {
         if(isSelectFromSaved){
           const token = JSON.parse(localStorage.getItem("token"));
@@ -199,7 +192,7 @@ export default function ChatContainer() {
         // Existing image/text handling code
         let apiMessageContent = [];
 
-        if (newMessage.message.trim()) {
+        if (newMessage.message?.trim()) {
           apiMessageContent.push({
             type: "text",
             text: newMessage.message,
@@ -215,48 +208,63 @@ export default function ChatContainer() {
           });
         }
 
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a helpful AI assistant that provides accurate and concise answers. Always respond in Bangla language. User might give you prompts in english alphabets that has bengali meanings. but you should respond in Bangla language.",
-              },
-              ...messages.map((msg) => ({
-                role: msg.owner === "owner" ? "user" : "assistant",
-                content: msg.image
-                  ? [
-                      { type: "text", text: msg.message || "" },
-                      {
-                        type: "image_url",
-                        image_url: {
-                          url: msg.image,
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a helpful AI assistant that provides accurate and concise answers. Always respond in Bangla language. User might give you prompts in english alphabets that has bengali meanings. but you should respond in Bangla language.",
+                },
+                ...messages.map((msg) => ({
+                  role: msg.owner === "owner" ? "user" : "assistant",
+                  content: msg.image && msg.owner === "owner"
+                    ? [
+                        { type: "text", text: msg.message || "" },
+                        {
+                          type: "image_url",
+                          image_url: {
+                            url: msg.image,
+                          },
                         },
-                      },
-                    ]
-                  : msg.content,
-              })),
-              {
-                role: "user",
-                content: apiMessageContent,
-              },
-            ],
-            max_tokens: 300,
-          }),
-        });
+                      ]
+                    : msg.message || "",
+                })),
+                {
+                  role: "user",
+                  content: apiMessageContent.length > 0 ? apiMessageContent : "",
+                },
+              ],
+              max_tokens: 300,
+            }),
+          });
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error?.message || "Unknown error");
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(
+              data.error?.message || 
+              data.message || 
+              "Failed to get response from AI"
+            );
+          }
+
+          if (!data.choices?.[0]?.message?.content) {
+            throw new Error("Invalid response format from AI");
+          }
+
+          answer = data.choices[0].message.content;
+        } catch (error) {
+          console.error("Error in AI request:", error);
+          answer = "দুঃখিত, একটি ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
         }
-        answer = data.choices[0].message.content;
       }
       const isSaved = await handleSaveMessage({
         message : answer,
